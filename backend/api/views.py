@@ -1,10 +1,11 @@
-from django.shortcuts import render
-from rest_framework import permissions, viewsets
+from rest_framework import permissions, viewsets, generics
+from rest_framework.response import Response
 from django.contrib.auth import get_user_model
+from django.shortcuts import get_object_or_404
 
 from . import serializers, pagination
 
-from food.models import Tag, Product, Unit, Recipe, Ingridient
+from food.models import Tag, Product, Recipe, Ingridient
 
 user = get_user_model()
 
@@ -34,10 +35,10 @@ class ProductViewset(BaseViewSet):
     serializer_class = serializers.ProductSerializer
 
 
-class UnitViewset(BaseViewSet):
-    """Вьюха единиц измерения"""
-    queryset = Unit.objects.all()
-    serializer_class = serializers.UnitSerializer
+# class UnitViewset(BaseViewSet):
+#     """Вьюха единиц измерения"""
+#     queryset = Unit.objects.all()
+#     serializer_class = serializers.UnitSerializer
 
 
 class RecipeViewset(BaseViewSet):
@@ -50,3 +51,11 @@ class IngridientViewset(BaseViewSet):
     """Вьюха ингридиентов"""
     queryset = Ingridient.objects.all()
     serializer_class = serializers.IngridientSerializer
+
+
+class UserMeViewset(viewsets.ViewSet):
+    def retrieve(self, request):
+        queryset = user.objects.all()
+        me = get_object_or_404(queryset, pk=request.user.id)
+        serializer = serializers.UserSerializer(me)
+        return Response(serializer.data)

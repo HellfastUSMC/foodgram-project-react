@@ -1,7 +1,9 @@
+from itertools import product
+from unicodedata import name
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 
-from food.models import Tag, Unit, Product, Recipe, Ingridient
+from food.models import Tag, Product, Recipe, Ingridient
 
 
 user = get_user_model()
@@ -28,12 +30,12 @@ class TagSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class UnitSerializer(serializers.ModelSerializer):
-    """Сериализатор единиц измерения."""
+# class UnitSerializer(serializers.ModelSerializer):
+#     """Сериализатор единиц измерения."""
 
-    class Meta:
-        model = Unit
-        fields = '__all__'
+#     class Meta:
+#         model = Unit
+#         fields = '__all__'
 
 
 class ProductSerializer(serializers.ModelSerializer):
@@ -44,17 +46,21 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class RecipeSerializer(serializers.ModelSerializer):
+class IngridientSerializer(serializers.ModelSerializer):
     """Сериализатор названий продуктов."""
-
+    product = ProductSerializer()
     class Meta:
-        model = Recipe
+        model = Ingridient
         fields = '__all__'
 
 
-class IngridientSerializer(serializers.ModelSerializer):
+class RecipeSerializer(serializers.ModelSerializer):
     """Сериализатор названий продуктов."""
+    tags = serializers.SlugRelatedField('name', many=True, read_only=True)
+    author = serializers.SlugRelatedField('username', read_only=True)
+    ingridients = IngridientSerializer(many=True)
+    #author = UserSerializer(read_only=True)
 
     class Meta:
-        model = Ingridient
+        model = Recipe
         fields = '__all__'

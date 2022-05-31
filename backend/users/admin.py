@@ -1,3 +1,7 @@
-from django.contrib import admin
+from django.contrib.admin import ModelAdmin, register
+from .models import Subscribition
 
-# Register your models here.
+
+@register(Subscribition)
+class SubscribitionAdmin(ModelAdmin):
+    pass

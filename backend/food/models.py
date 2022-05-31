@@ -11,18 +11,11 @@ from django.core.validators import (MaxValueValidator,
 user = get_user_model()
 
 
-class Unit(models.Model):
-    name = models.CharField('Единица измерения', max_length=30, unique=True)
+# class Unit(models.Model):
+#     name = models.CharField('Единица измерения', max_length=30, unique=True)
 
-    def __str__(self):
-        return self.name
-
-
-class Product(models.Model):
-    name = models.CharField('Название продукта', max_length=30, unique=True)
-
-    def __str__(self):
-        return self.name
+#     def __str__(self):
+#         return self.name
 
 
 class Tag(models.Model):
@@ -39,30 +32,41 @@ class Tag(models.Model):
         return self.name
 
 
-class Ingridient(models.Model):
-    name = models.ManyToManyField(
-        Product,
+class Product(models.Model):
+    name = models.CharField(
         verbose_name='Название продукта',
-        related_name='ingridient'
+        max_length=200,
+        unique=True
     )
-    volume = models.FloatField(
-        'Количество',
-        validators=[MinValueValidator(0.0)]
-    )
-    units = models.ManyToManyField(
-        Unit,
+    measurement_unit = models.CharField(
         verbose_name='Единицы измерения',
-        related_name='ingridient'
+        max_length=30
     )
 
     def __str__(self):
         return self.name
 
 
+class Ingridient(models.Model):
+    product = models.ForeignKey(
+        Product,
+        verbose_name='Продукт',
+        related_name='ingridients',
+        on_delete=models.CASCADE
+    )
+    amount = models.IntegerField(
+        'Количество',
+        validators=[MinValueValidator(1)]
+    )
+
+    def __str__(self):
+        return self.product.name
+
+
 class Recipe(models.Model):
     author = models.ForeignKey(
         user, on_delete=models.CASCADE,
-        related_name='recipes',
+        related_name='my_recipes',
         verbose_name='Автор'
     )
     name = models.CharField('Название', max_length=200)
@@ -72,9 +76,14 @@ class Recipe(models.Model):
     tags = models.ManyToManyField(Tag, related_name='recipes')
     cooking_time = models.IntegerField(
         'Время приготовления',
-        validators=[MinValueValidator(1)]
+        validators=[MinValueValidator(1), MaxValueValidator(5000)]
     )
-    favorites = models.ManyToManyField(user, related_name='favorites')
+    favorites = models.ManyToManyField(
+        user,
+        verbose_name='Избранное',
+        related_name='favorites',
+        blank=True,
+    )
 
     def __str__(self):
         return self.name
@@ -82,7 +91,8 @@ class Recipe(models.Model):
 
 class ShoppingCart(models.Model):
     customer = models.ForeignKey(
-        user, on_delete=models.CASCADE,
+        user,
+        on_delete=models.CASCADE,
         related_name='shopping_cart',
         verbose_name='Список покупок'
     )
