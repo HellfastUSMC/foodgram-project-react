@@ -1,5 +1,6 @@
-from rest_framework import permissions, viewsets, generics
+from rest_framework import permissions, viewsets, views
 from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 
@@ -8,6 +9,17 @@ from . import serializers, pagination
 from food.models import Tag, Product, Recipe, Ingridient
 
 user = get_user_model()
+
+
+class TokenLogout(views.APIView):
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def post(self, request):
+        ref_str = RefreshToken.for_user(request.user)
+        print(ref_str)
+        token = RefreshToken(ref_str)
+        token.blacklist()
+        return Response({"Logged out!"})
 
 
 class BaseViewSet(viewsets.ModelViewSet):
