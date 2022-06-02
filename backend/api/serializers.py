@@ -1,7 +1,7 @@
-from itertools import product
-from unicodedata import name
+from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
+from drf_extra_fields.fields import Base64ImageField 
 
 from food.models import Tag, Product, Recipe, Ingridient
 
@@ -40,7 +40,9 @@ class TagSerializer(serializers.ModelSerializer):
 
 class ProductSerializer(serializers.ModelSerializer):
     """Сериализатор названий продуктов."""
-
+    def to_internal_value(self, data):
+        obj = get_object_or_404(Product, pk=data['id'])
+        return obj
     class Meta:
         model = Product
         fields = '__all__'
@@ -48,18 +50,47 @@ class ProductSerializer(serializers.ModelSerializer):
 
 class IngridientSerializer(serializers.ModelSerializer):
     """Сериализатор названий продуктов."""
+    class Meta:
+        model = Ingridient
+        fields = '__all__'
+
+
+class IngridientViewSerializer(serializers.ModelSerializer):
     product = ProductSerializer()
     class Meta:
         model = Ingridient
         fields = '__all__'
 
 
+
 class RecipeSerializer(serializers.ModelSerializer):
     """Сериализатор названий продуктов."""
-    tags = serializers.SlugRelatedField('name', many=True, read_only=True)
+    #tags = TagSerializer(many=True)
+    tags = serializers.PrimaryKeyRelatedField(queryset=Tag.objects.all(), many=True)
+    ingridients = serializers.PrimaryKeyRelatedField(queryset=Ingridient.objects.all(), many=True)
     author = serializers.SlugRelatedField('username', read_only=True)
-    ingridients = IngridientSerializer(many=True)
+    image = Base64ImageField()
+    #ingridients = IngridientSerializer(many=True)
     #author = UserSerializer(read_only=True)
+
+
+    class Meta:
+        model = Recipe
+        fields = '__all__'
+
+
+class RecipeViewSerializer(serializers.ModelSerializer):
+    tags = TagSerializer(many=True)
+    ingridients = IngridientViewSerializer(many=True)
+    is_favorited = serializers.SerializerMethodField('_get_favorited')
+
+    def _get_favorited(self, obj):
+        request = self.context.get('request', None)
+        if obj.favorites.filter(pk=request.user.id).exists():
+            return 1
+        else:
+            return 0
+            
 
     class Meta:
         model = Recipe

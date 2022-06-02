@@ -75,6 +75,15 @@ class RecipeViewset(BaseViewSet):
     queryset = Recipe.objects.all()
     serializer_class = serializers.RecipeSerializer
 
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
+
+    def get_serializer_class(self):
+        if self.action in ['list', 'retrieve']:
+            return serializers.RecipeViewSerializer
+        elif self.action in ['create', 'update', 'destroy']:
+            return serializers.RecipeSerializer
+
 
 class IngridientViewset(BaseViewSet):
     """Вьюха ингридиентов"""
