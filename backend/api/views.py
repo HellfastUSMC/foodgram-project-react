@@ -1,4 +1,4 @@
-from rest_framework import permissions, viewsets, views # filters ПОИСК ПО СТРОКЕ
+from rest_framework import permissions, viewsets, views, status # filters ПОИСК ПО СТРОКЕ
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.response import Response
@@ -97,3 +97,23 @@ class UserMeViewset(viewsets.ViewSet):
         me = get_object_or_404(queryset, pk=request.user.id)
         serializer = serializers.UserSerializer(me)
         return Response(serializer.data)
+
+
+class AddToFavoriteView(views.APIView):
+    def post(self, request, recipe_id):
+        if self.request.user.is_authenticated:
+            user = self.request.user
+            recipe_obj = get_object_or_404(Recipe, pk=recipe_id)
+            recipe_obj.favorites.add(user)
+            return Response({'Объект добавлен в избранное!'}, status=status.HTTP_200_OK)
+        else:
+            return Response({'Учетные данные не были предоставлены.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    def delete(self, request, recipe_id):
+        if self.request.user.is_authenticated:
+            user = self.request.user
+            recipe_obj = get_object_or_404(Recipe, pk=recipe_id)
+            recipe_obj.favorites.remove(user)
+            return Response({'Объект удален из избранного!'}, status=status.HTTP_200_OK)
+        else:
+            return Response({'Учетные данные не были предоставлены.'}, status=status.HTTP_401_UNAUTHORIZED)
