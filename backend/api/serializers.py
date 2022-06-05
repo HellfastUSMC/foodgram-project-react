@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from drf_extra_fields.fields import Base64ImageField 
 
 from food.models import Tag, Product, Recipe, Ingridient
+from users.models import Subscribition
 
 
 user = get_user_model()
@@ -13,13 +14,30 @@ class UserSerializer(serializers.ModelSerializer):
     """Сериализатор пользователей."""
 
     full_name = serializers.SerializerMethodField('get_full_name')
+    is_subscribed = serializers.SerializerMethodField('check_subscribition')
 
     def get_full_name(self, obj):
         return obj.get_full_name()
 
+    def check_subscribition(self, obj):
+        request = self.context['request']
+        print(obj.subscribers)
+        if Subscribition.objects.filter(author=obj).filter(subscriber=request.user).exists():
+            return 'true'
+        else:
+            return 'false'
+
     class Meta:
         model = user
-        fields = '__all__'
+        fields = [
+            'id',
+            'username',
+            'first_name',
+            'last_name',
+            'email',
+            'full_name',
+            'is_subscribed'
+        ]
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -73,7 +91,6 @@ class RecipeSerializer(serializers.ModelSerializer):
     #ingridients = IngridientSerializer(many=True)
     #author = UserSerializer(read_only=True)
 
-
     class Meta:
         model = Recipe
         fields = '__all__'
@@ -82,7 +99,7 @@ class RecipeSerializer(serializers.ModelSerializer):
 class RecipeViewSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True)
     ingridients = IngridientViewSerializer(many=True)
-    is_favorited = serializers.SerializerMethodField('_get_favorited')
+    is_favorited = serializers.SerializerMethodField('_get_favorited', read_only=True)
 
     def _get_favorited(self, obj):
         request = self.context.get('request', None)
@@ -90,7 +107,6 @@ class RecipeViewSerializer(serializers.ModelSerializer):
             return 1
         else:
             return 0
-            
 
     class Meta:
         model = Recipe

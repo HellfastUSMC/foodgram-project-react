@@ -5,5 +5,5 @@ user = get_user_model()
 
 # Create your models here.
 class Subscribition(models.Model):
-    author = models.ManyToManyField(user, related_name='subscribitions')
-    subscriber = models.ManyToManyField(user, related_name='subscribers')
+    author = models.ForeignKey(user, related_name='subscribitions', on_delete=models.CASCADE, default='1')
+    subscriber = models.ForeignKey(user, related_name='subscribers', on_delete=models.CASCADE, default='1')
