@@ -25,7 +25,7 @@ urlpatterns = [
     ),
     path(
         'recipes/<int:recipe_id>/shopping_cart/',
-        views.AddToShoppingCartView.as_view(),
+        views.AddToShoppingCartView.as_view({'post': 'post', 'delete': 'delete'}),
         name='recipe_add_2_fav'
     ),
     path(

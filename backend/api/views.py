@@ -170,7 +170,7 @@ class AddToFavoriteView(views.APIView):
             user = self.request.user
             recipe_obj = get_object_or_404(Recipe, pk=recipe_id)
             recipe_obj.favorites.remove(user)
-            return Response({'Объект удален из избранного!'}, status=status.HTTP_200_OK)
+            return Response({'Объект удален из избранного!'}, status=status.HTTP_204_NO_CONTENT)
         else:
             return Response({'Учетные данные не были предоставлены.'}, status=status.HTTP_401_UNAUTHORIZED)
 
@@ -202,15 +202,29 @@ class SubscribeView(views.APIView):
             return Response({f'Отписка от {author.username} успешно оформлена'}, status=status.HTTP_204_NO_CONTENT)
 
 
-class AddToShoppingCartView(views.APIView):
+class AddToShoppingCartView(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated, ]
 
-    def post(self, request):
-        recipe = get_object_or_404(user, pk=self.kwargs['recipe_id'])
-        shopping_cart = ShoppingCart.objects.get_or_create(customer=request.user)
-        if shopping_cart.recipe.filter(id=recipe.id).exists():
+    # def get(self, request, recipe_id):
+    #     cart = request.user.shopping_cart.first().recipes.all().order_by('id')
+    #     cart_data = serializers.RecipeViewSerializer(cart, many=True, context={'request': request}).data
+    #     return Response(cart_data)
+
+    def post(self, request, recipe_id):
+        recipe = get_object_or_404(Recipe, pk=recipe_id)
+        shopping_cart = ShoppingCart.objects.get_or_create(customer=request.user)[0]
+        if shopping_cart.recipes.filter(pk=recipe_id).exists():
             return Response({'Рецепт уже добавлен'}, status=status.HTTP_400_BAD_REQUEST)
         else:
-            shopping_cart.recipe.add(recipe)
-            recipe_data = serializers.RecipeViewSerializer(recipe).data
-            return Response(recipe_data, status=status.HTTP_400_BAD_REQUEST)
+            shopping_cart.recipes.add(recipe)
+            recipe_data = serializers.RecipeViewSerializer(recipe, context={'request': request}).data
+            return Response(recipe_data, status=status.HTTP_200_OK)
+
+    def delete(self, request, recipe_id):
+        cart = get_object_or_404(ShoppingCart, pk=request.user.shopping_cart.first().id)
+        recipe = get_object_or_404(Recipe, pk=recipe_id)
+        if not cart.recipes.filter(pk=recipe_id).exists():
+            return Response({'Рецепт отсутствует в корзине'}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            cart.recipes.remove(recipe)
+            return Response({'Рецепт успешно удален из корзины'}, status=status.HTTP_204_NO_CONTENT)
