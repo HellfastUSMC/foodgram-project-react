@@ -87,13 +87,3 @@ class Recipe(models.Model):
 
     def __str__(self):
         return self.name
-
-
-class ShoppingCart(models.Model):
-    customer = models.ForeignKey(
-        user,
-        on_delete=models.CASCADE,
-        related_name='shopping_cart',
-        verbose_name='Список покупок'
-    )
-    goods = models.ManyToManyField(Ingridient, related_name='shopping_carts')

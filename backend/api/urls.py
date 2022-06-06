@@ -12,7 +12,7 @@ router.register('users', views.UserViewset)
 router.register('tags', views.TagViewset, basename='Tag')
 router.register('products', views.ProductViewset)
 router.register('ingridients', views.IngridientViewset)
-router.register('recipes', views.RecipeViewset)
+router.register('recipes', views.RecipeViewset, basename='Recipe')
 
 urlpatterns = [
     #path('', include('djoser.urls')),
@@ -21,6 +21,11 @@ urlpatterns = [
     path(
         'recipes/<int:recipe_id>/favorite/',
         views.AddToFavoriteView.as_view(),
+        name='recipe_add_2_fav'
+    ),
+    path(
+        'recipes/<int:recipe_id>/shopping_cart/',
+        views.AddToShoppingCartView.as_view(),
         name='recipe_add_2_fav'
     ),
     path(

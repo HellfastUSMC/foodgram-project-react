@@ -1,14 +1,12 @@
-from multiprocessing import context
 from django.forms import ValidationError
 from rest_framework import permissions, viewsets, views, status, filters # ПОИСК ПО СТРОКЕ
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 
-from users.models import Subscribition
+from users.models import Subscribition, ShoppingCart
 
 from .filters import TagFilter
 
@@ -33,7 +31,7 @@ class BaseViewSet(viewsets.ModelViewSet):
     """Базовая вьюха."""
     #permission_classes = [IsAdmin | ReadOnly]
     permission_classes = [permissions.AllowAny]
-    pagination_class = LimitOffsetPagination
+    pagination_class = pagination.DefaultPagination
     #filter_backends = (filters.SearchFilter,) ПОИСК ПО СТРОКЕ
     #search_fields = ('slug',) ПОИСК ПО СТРОКЕ
     #lookup_field = 'slug' ПОИСК ПО СТРОКЕ
@@ -48,8 +46,8 @@ class UserViewset(BaseViewSet):
 
 class TagViewset(BaseViewSet):
     """Вьюха тэгов"""
-    ordering_fields = ['slug', ]
-    ordering = ['slug']
+    #ordering_fields = ['slug', ]
+    #ordering = ['slug']
     serializer_class = serializers.TagSerializer
 
     def update(self, request, *args, **kwargs):
@@ -67,16 +65,16 @@ class TagViewset(BaseViewSet):
     def get_queryset(self):
         slug_values = self.request.GET.getlist('slug')
         if slug_values:
-            queryset = Tag.objects.filter(slug__in=slug_values)
+            queryset = Tag.objects.filter(slug__in=slug_values).order_by('id')
             print(slug_values)
         else:
-            queryset = Tag.objects.all()
+            queryset = Tag.objects.all().order_by('id')
         return queryset
 
 
 class ProductViewset(BaseViewSet):
     """Вьюха продуктов"""
-    queryset = Product.objects.all()
+    queryset = Product.objects.all().order_by('id')
     serializer_class = serializers.ProductSerializer
     filter_backends = (filters.SearchFilter,)
     search_fields = ('^name',)
@@ -94,37 +92,28 @@ class ProductViewset(BaseViewSet):
         return Response({'Метод запрещен'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
-# class UnitViewset(BaseViewSet):
-#     """Вьюха единиц измерения"""
-#     queryset = Unit.objects.all()
-#     serializer_class = serializers.UnitSerializer
-
-
 class RecipeViewset(BaseViewSet):
     """Вьюха рецептов"""
-    queryset = Recipe.objects.all()
+    #queryset = Recipe.objects.all().order_by('id')
     serializer_class = serializers.RecipeSerializer
     permission_classes = [local_rights.IsAuthenticatedAndOwner, ]
-    #filter_backends = [DjangoFilterBackend, ]
-    #filterset_fields = ['author', 'tags', ]
 
     def perform_create(self, serializer):
         if self.request.user.is_authenticated:
             serializer.save(author=self.request.user)
         else:
             #return Response({'Необходима авторизация'}, status=status.HTTP_401_UNAUTHORIZED)
-            raise ValidationError('Требуется авторизация')
+            raise ValidationError('Требуется авторизация') # !проверить, я не помню что тут надо было
 
     def get_queryset(self):
-        is_favorited = self.request.GET.get('is_favorited', None)
-        tags = self.request.GET.getlist('tags', None)
-        author = get_object_or_404(user, pk=self.request.GET.get('author', None))
-        if is_favorited == '1':
-            queryset = self.request.user.favorites.filter(tags__id__in=tags, author=author)
-            print('new_qs',queryset)
-        else:
-            queryset = Recipe.objects.filter(tags__id__in=tags, author=author)
-        return queryset
+        queryset = Recipe.objects.all()
+        if self.request.GET.get('is_favorited') == '1':
+            queryset = queryset.filter(favorites__id=self.request.user.id)
+        if self.request.GET.getlist('tags'):
+            queryset = queryset.filter(tags__id__in=self.request.GET.getlist('tags'))
+        if self.request.GET.get('author'):
+            queryset = queryset.filter(author__id=self.request.GET.get('author'))
+        return queryset.order_by('id')
 
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve']:
@@ -135,13 +124,13 @@ class RecipeViewset(BaseViewSet):
 
 class IngridientViewset(BaseViewSet):
     """Вьюха ингридиентов"""
-    queryset = Ingridient.objects.all()
+    queryset = Ingridient.objects.all().order_by('id')
     serializer_class = serializers.IngridientSerializer
 
 
 class UserMeViewset(viewsets.ViewSet):
     def retrieve(self, request):
-        queryset = user.objects.all()
+        queryset = user.objects.all().order_by('id')
         me = get_object_or_404(queryset, pk=request.user.id)
         serializer = serializers.UserSerializer(me, context={'request': request})
         return Response(serializer.data)
@@ -211,3 +200,17 @@ class SubscribeView(views.APIView):
         else:
             Subscribition.objects.filter(author=author, subscriber=request.user).delete()
             return Response({f'Отписка от {author.username} успешно оформлена'}, status=status.HTTP_204_NO_CONTENT)
+
+
+class AddToShoppingCartView(views.APIView):
+    permission_classes = [permissions.IsAuthenticated, ]
+
+    def post(self, request):
+        recipe = get_object_or_404(user, pk=self.kwargs['recipe_id'])
+        shopping_cart = ShoppingCart.objects.get_or_create(customer=request.user)
+        if shopping_cart.recipe.filter(id=recipe.id).exists():
+            return Response({'Рецепт уже добавлен'}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            shopping_cart.recipe.add(recipe)
+            recipe_data = serializers.RecipeViewSerializer(recipe).data
+            return Response(recipe_data, status=status.HTTP_400_BAD_REQUEST)
