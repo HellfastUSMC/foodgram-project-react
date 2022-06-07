@@ -74,7 +74,8 @@ class IngridientSerializer(serializers.ModelSerializer):
 
 
 class IngridientViewSerializer(serializers.ModelSerializer):
-    product = ProductSerializer()
+    #product = ProductSerializer()
+    name = serializers.CharField(source='product.name')
     class Meta:
         model = Ingridient
         fields = '__all__'

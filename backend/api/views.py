@@ -24,7 +24,7 @@ class TokenLogout(views.APIView):
         ref_str = RefreshToken.for_user(request.user)
         token = RefreshToken(ref_str)
         token.blacklist()
-        return Response({'Logged out!'})
+        return Response({'detial': 'Logged out!'})
 
 
 class BaseViewSet(viewsets.ModelViewSet):
@@ -40,7 +40,7 @@ class BaseViewSet(viewsets.ModelViewSet):
 class UserViewset(BaseViewSet):
     """Вьюха пользователей"""
     permission_classes = [local_rights.IsAuthenticatedAndOwner]
-    queryset = user.objects.all()
+    queryset = user.objects.all().order_by('id')
     serializer_class = serializers.UserSerializer
 
 
@@ -51,16 +51,16 @@ class TagViewset(BaseViewSet):
     serializer_class = serializers.TagSerializer
 
     def update(self, request, *args, **kwargs):
-        return Response({'Метод запрещен'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        return Response({'detial': 'Метод запрещен'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
     def destroy(self, request, *args, **kwargs):
-        return Response({'Метод запрещен'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        return Response({'detial': 'Метод запрещен'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
     def create(self, request, *args, **kwargs):
-        return Response({'Метод запрещен'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        return Response({'detial': 'Метод запрещен'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
     def partial_update(self, request, *args, **kwargs):
-        return Response({'Метод запрещен'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        return Response({'detial': 'Метод запрещен'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
     def get_queryset(self):
         slug_values = self.request.GET.getlist('slug')
@@ -80,16 +80,16 @@ class ProductViewset(BaseViewSet):
     search_fields = ('^name',)
 
     def update(self, request, *args, **kwargs):
-        return Response({'Метод запрещен'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        return Response({'detial': 'Метод запрещен'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
     def destroy(self, request, *args, **kwargs):
-        return Response({'Метод запрещен'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        return Response({'detial': 'Метод запрещен'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
     def create(self, request, *args, **kwargs):
-        return Response({'Метод запрещен'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        return Response({'detial': 'Метод запрещен'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
     def partial_update(self, request, *args, **kwargs):
-        return Response({'Метод запрещен'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        return Response({'detial': 'Метод запрещен'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
 class RecipeViewset(BaseViewSet):
@@ -97,16 +97,16 @@ class RecipeViewset(BaseViewSet):
     #queryset = Recipe.objects.all().order_by('id')
     serializer_class = serializers.RecipeSerializer
     permission_classes = [local_rights.IsAuthenticatedAndOwner, ]
-
+    
+    def create(self, request, *args, **kwargs):
+        super().create(request, *args, **kwargs)
+        return Response(serializers.RecipeViewSerializer(self.request.user.my_recipes.last(), context={'request': self.request}).data)
+    
     def perform_create(self, serializer):
-        if self.request.user.is_authenticated:
-            serializer.save(author=self.request.user)
-        else:
-            #return Response({'Необходима авторизация'}, status=status.HTTP_401_UNAUTHORIZED)
-            raise ValidationError('Требуется авторизация') # !проверить, я не помню что тут надо было
+        serializer.save(author=self.request.user)
 
     def get_queryset(self):
-        queryset = Recipe.objects.all()
+        queryset = Recipe.objects.all().order_by('id')
         if self.request.GET.get('is_favorited') == '1':
             queryset = queryset.filter(favorites__id=self.request.user.id)
         if self.request.GET.getlist('tags'):
@@ -130,8 +130,7 @@ class IngridientViewset(BaseViewSet):
 
 class UserMeViewset(viewsets.ViewSet):
     def retrieve(self, request):
-        queryset = user.objects.all().order_by('id')
-        me = get_object_or_404(queryset, pk=request.user.id)
+        me = get_object_or_404(user.objects.all(), pk=request.user.id)
         serializer = serializers.UserSerializer(me, context={'request': request})
         return Response(serializer.data)
 
@@ -154,25 +153,24 @@ class UserSetPasswordViewset(views.APIView):
                     return Response({'detail': 'Пароль успешно изменен'}, status=status.HTTP_200_OK)
 
 
-
 class AddToFavoriteView(views.APIView):
     def post(self, request, recipe_id):
         if self.request.user.is_authenticated:
             user = self.request.user
             recipe_obj = get_object_or_404(Recipe, pk=recipe_id)
             recipe_obj.favorites.add(user)
-            return Response({'Объект добавлен в избранное!'}, status=status.HTTP_200_OK)
+            return Response({'detial': 'Объект добавлен в избранное!'}, status=status.HTTP_200_OK)
         else:
-            return Response({'Учетные данные не были предоставлены.'}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({'detial': 'Учетные данные не были предоставлены.'}, status=status.HTTP_401_UNAUTHORIZED)
 
     def delete(self, request, recipe_id):
         if self.request.user.is_authenticated:
             user = self.request.user
             recipe_obj = get_object_or_404(Recipe, pk=recipe_id)
             recipe_obj.favorites.remove(user)
-            return Response({'Объект удален из избранного!'}, status=status.HTTP_204_NO_CONTENT)
+            return Response({'detial': 'Объект удален из избранного!'}, status=status.HTTP_204_NO_CONTENT)
         else:
-            return Response({'Учетные данные не были предоставлены.'}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({'detial': 'Учетные данные не были предоставлены.'}, status=status.HTTP_401_UNAUTHORIZED)
 
 
 class SubscribeView(views.APIView):
@@ -181,7 +179,7 @@ class SubscribeView(views.APIView):
     def post(self, request, *args, **kwargs):
         author = get_object_or_404(user, pk=self.kwargs['user_id'])
         if request.user == author or Subscribition.objects.filter(author=author).filter(subscriber=request.user).exists():
-            return Response({'Невозможно подписаться'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detial': 'Невозможно подписаться'}, status=status.HTTP_400_BAD_REQUEST)
         else:
             Subscribition.objects.create(author=author, subscriber=request.user)
             user_data = serializers.UserSerializer(author, context={'request': request}).data
@@ -196,10 +194,10 @@ class SubscribeView(views.APIView):
     def delete(self, request, *args, **kwargs):
         author = get_object_or_404(user, pk=self.kwargs['user_id'])
         if not Subscribition.objects.filter(author=author).filter(subscriber=request.user).exists():
-            return Response({'Невозможно отписаться'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detial': 'Невозможно отписаться'}, status=status.HTTP_400_BAD_REQUEST)
         else:
             Subscribition.objects.filter(author=author, subscriber=request.user).delete()
-            return Response({f'Отписка от {author.username} успешно оформлена'}, status=status.HTTP_204_NO_CONTENT)
+            return Response({'detial': f'Отписка от {author.username} успешно оформлена'}, status=status.HTTP_204_NO_CONTENT)
 
 
 class AddToShoppingCartView(viewsets.ViewSet):
@@ -214,7 +212,7 @@ class AddToShoppingCartView(viewsets.ViewSet):
         recipe = get_object_or_404(Recipe, pk=recipe_id)
         shopping_cart = ShoppingCart.objects.get_or_create(customer=request.user)[0]
         if shopping_cart.recipes.filter(pk=recipe_id).exists():
-            return Response({'Рецепт уже добавлен'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detial': 'Рецепт уже добавлен'}, status=status.HTTP_400_BAD_REQUEST)
         else:
             shopping_cart.recipes.add(recipe)
             recipe_data = serializers.RecipeViewSerializer(recipe, context={'request': request}).data
@@ -224,7 +222,7 @@ class AddToShoppingCartView(viewsets.ViewSet):
         cart = get_object_or_404(ShoppingCart, pk=request.user.shopping_cart.first().id)
         recipe = get_object_or_404(Recipe, pk=recipe_id)
         if not cart.recipes.filter(pk=recipe_id).exists():
-            return Response({'Рецепт отсутствует в корзине'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detial': 'Рецепт отсутствует в корзине'}, status=status.HTTP_400_BAD_REQUEST)
         else:
             cart.recipes.remove(recipe)
-            return Response({'Рецепт успешно удален из корзины'}, status=status.HTTP_204_NO_CONTENT)
+            return Response({'detial': 'Рецепт успешно удален из корзины'}, status=status.HTTP_204_NO_CONTENT)
