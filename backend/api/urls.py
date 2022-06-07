@@ -26,12 +26,17 @@ urlpatterns = [
     path(
         'recipes/<int:recipe_id>/shopping_cart/',
         views.AddToShoppingCartView.as_view({'post': 'post', 'delete': 'delete'}),
-        name='recipe_add_2_fav'
+        name='recipe_add_2_cart'
     ),
     path(
         'users/<int:user_id>/subscribe/',
-        views.SubscribeView.as_view(),
-        name='subscribition'
+        views.SubscribeView.as_view({'post': 'post', 'delete': 'delete'}),
+        name='un-subscribe'
+    ),
+    path(
+        'users/subscription/',
+        views.SubscribeView.as_view({'get': 'get'}),
+        name='subscription'
     ),
     path('auth/token/login/', TokenObtainPairView.as_view(), name='token_login'),
     path('auth/token/logout/', views.TokenLogout.as_view(), name='token_logout'),

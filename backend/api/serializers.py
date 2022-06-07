@@ -13,7 +13,7 @@ user = get_user_model()
 class UserSerializer(serializers.ModelSerializer):
     """Сериализатор пользователей."""
 
-    full_name = serializers.SerializerMethodField('get_full_name')
+    #full_name = serializers.SerializerMethodField('get_full_name')
     is_subscribed = serializers.SerializerMethodField('check_subscribition')
 
     def get_full_name(self, obj):
@@ -35,10 +35,8 @@ class UserSerializer(serializers.ModelSerializer):
             'first_name',
             'last_name',
             'email',
-            'full_name',
             'is_subscribed'
         ]
-
 
 class TagSerializer(serializers.ModelSerializer):
     """Сериализатор тегов."""
@@ -102,6 +100,20 @@ class RecipeViewSerializer(serializers.ModelSerializer):
     ingridients = IngridientViewSerializer(many=True)
     is_favorited = serializers.SerializerMethodField('_get_favorited', read_only=True)
 
+    def __init__(self, *args, **kwargs):
+        # Don't pass the 'fields' arg up to the superclass
+        fields = kwargs.pop('fields', None)
+
+        # Instantiate the superclass normally
+        super().__init__(*args, **kwargs)
+
+        if fields is not None:
+            # Drop any fields that are not specified in the `fields` argument.
+            allowed = set(fields)
+            existing = set(self.fields)
+            for field_name in existing - allowed:
+                self.fields.pop(field_name)
+
     def _get_favorited(self, obj):
         request = self.context.get('request', None)
         if obj.favorites.filter(pk=request.user.id).exists():
@@ -112,3 +124,20 @@ class RecipeViewSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
         fields = '__all__'
+
+
+class UserSupscriptionsSerializer(serializers.ModelSerializer): # STOPS HERE!!!
+    recipes = RecipeViewSerializer(many=True, fields=['id', 'name', 'image', 'cooking_time'])
+    recipes_count = len(recipes.data)
+
+    class Meta:
+        model = Subscribition
+        fields = [
+            'id',
+            'username',
+            'first_name',
+            'last_name',
+            'email',
+            'is_subscribed',
+            'recipes'
+        ]
