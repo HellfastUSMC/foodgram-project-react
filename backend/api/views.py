@@ -6,13 +6,11 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 
-from users.models import Subscribition, ShoppingCart
-
 from .filters import TagFilter
 
 from . import serializers, pagination, permissions as local_rights
 
-from food.models import Tag, Product, Recipe, Ingridient
+from food.models import Tag, Product, Recipe, Ingridient, Subscribition, ShoppingCart
 
 user = get_user_model()
 
@@ -136,13 +134,14 @@ class UserMeViewset(viewsets.ViewSet):
 
 
 class UserSetPasswordViewset(views.APIView):
+    #permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
         if not request.user.is_authenticated:
             return Response({'detail': 'Необходима авторизация'}, status=status.HTTP_401_UNAUTHORIZED)
         else:
             cur_user = request.user
-            if 'old_password' not in request.data or not len(request.data['old_password']):
+            if 'old_password' not in request.data or not cur_user.check_password(request.data['old_password']):
                 return Response({'detail': 'Неверный пароль или отсутствует поле old_password'}, status=status.HTTP_403_FORBIDDEN)
             else:
                 if 'new_password' not in request.data or len(request.data['new_password']) < 3:

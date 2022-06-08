@@ -1,5 +1,5 @@
 from django.contrib.admin import ModelAdmin, register
-from .models import Ingridient, Product, Recipe, Tag
+from .models import Ingridient, Product, Recipe, Tag, ShoppingCart, Subscribition
 
 
 @register(Tag)
@@ -19,4 +19,14 @@ class IngridientAdmin(ModelAdmin):
 
 @register(Recipe)
 class RecipeAdmin(ModelAdmin):
+    pass
+
+
+@register(Subscribition)
+class SubscribitionAdmin(ModelAdmin):
+    pass
+
+
+@register(ShoppingCart)
+class ShoppingCartAdmin(ModelAdmin):
     pass

@@ -3,8 +3,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from drf_extra_fields.fields import Base64ImageField 
 
-from food.models import Tag, Product, Recipe, Ingridient
-from users.models import Subscribition
+from food.models import Tag, Product, Recipe, Ingridient, Subscribition, ShoppingCart
 
 
 user = get_user_model()
