@@ -8,11 +8,11 @@ from . import views
 app_name = 'api'
 
 router = SimpleRouter()
-router.register('users', views.UserViewset)
-router.register('tags', views.TagViewset, basename='Tag')
-router.register('products', views.ProductViewset)
-router.register('ingridients', views.IngridientViewset)
-router.register('recipes', views.RecipeViewset, basename='Recipe')
+router.register('users', views.UserViewset, basename='users')
+router.register('tags', views.TagViewset, basename='tags')
+router.register('products', views.ProductViewset, basename='products')
+router.register('ingridients', views.IngridientViewset, basename='ingridients')
+router.register('recipes', views.RecipeViewset, basename='recipes')
 
 urlpatterns = [
     #path('', include('djoser.urls')),
@@ -35,7 +35,7 @@ urlpatterns = [
     ),
     path(
         'users/subscription/',
-        views.SubscribeView.as_view({'get': 'get'}),
+        views.SubscribeListView.as_view({'get': 'list'}),
         name='subscription'
     ),
     path('auth/token/login/', TokenObtainPairView.as_view(), name='token_login'),

@@ -1,5 +1,5 @@
 from django.forms import ValidationError
-from rest_framework import permissions, viewsets, views, status, filters # ПОИСК ПО СТРОКЕ
+from rest_framework import permissions, viewsets, views, status, filters, mixins # ПОИСК ПО СТРОКЕ
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -10,7 +10,7 @@ from .filters import TagFilter
 
 from . import serializers, pagination, permissions as local_rights
 
-from food.models import Tag, Product, Recipe, Ingridient, Subscribition, ShoppingCart
+from food.models import Tag, Product, Recipe, Ingridient, Subscription, ShoppingCart
 
 user = get_user_model()
 
@@ -98,7 +98,7 @@ class RecipeViewset(BaseViewSet):
     
     def create(self, request, *args, **kwargs):
         super().create(request, *args, **kwargs)
-        return Response(serializers.RecipeViewSerializer(self.request.user.my_recipes.last(), context={'request': self.request}).data)
+        return Response(serializers.RecipeViewSerializer(self.request.user.recipes.last(), context={'request': self.request}).data)
     
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
@@ -172,12 +172,22 @@ class AddToFavoriteView(views.APIView):
             return Response({'detail': 'Учетные данные не были предоставлены.'}, status=status.HTTP_401_UNAUTHORIZED)
 
 
+class SubscribeListView(mixins.ListModelMixin, viewsets.GenericViewSet):
+    permission_classes = [permissions.IsAuthenticated, ]
+    pagination_class = pagination.DefaultPagination
+    serializer_class = serializers.UserSupscriptionsSerializer
+
+    def get_queryset(self):
+        return user.objects.filter(subscriptions__subscriber=self.request.user)
+
+
 class SubscribeView(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated, ]
 
-    def get(self, request, *args, **kwargs):
-        queryset = request.user.subscribitions.all()
-        serializer = 1 # STOPS HERE!!!
+    # def list(self, request, *args, **kwargs):
+    #     pagination_class = pagination.DefaultPagination
+    #     queryset = user.objects.filter(subscriptions__subscriber=request.user)
+    #     serializer_class = serializers.UserSupscriptionsSerializer
 
     # def get(self, request, *args, **kwargs):
     #     subs = request.user.subscribers.all()
@@ -185,7 +195,7 @@ class SubscribeView(viewsets.ViewSet):
     #     for user in subs:
     #         temp_user_data = serializers.UserSerializer(user.author, context={'request': request}).data
     #         temp_user_data['recipes'] = serializers.RecipeViewSerializer(
-    #             request.user.my_recipes.all(),
+    #             request.user.recipes.all(),
     #             many=True,
     #             context={'request': request},
     #             fields=['id', 'name', 'image', 'cooking_time']
@@ -195,13 +205,13 @@ class SubscribeView(viewsets.ViewSet):
 
     def post(self, request, *args, **kwargs):
         author = get_object_or_404(user, pk=self.kwargs['user_id'])
-        if request.user == author or Subscribition.objects.filter(author=author).filter(subscriber=request.user).exists():
+        if request.user == author or Subscription.objects.filter(author=author).filter(subscriber=request.user).exists():
             return Response({'detail': 'Невозможно подписаться'}, status=status.HTTP_400_BAD_REQUEST)
         else:
-            Subscribition.objects.create(author=author, subscriber=request.user)
+            Subscription.objects.create(author=author, subscriber=request.user)
             user_data = serializers.UserSerializer(author, context={'request': request}).data
             user_data['recipes'] = serializers.RecipeViewSerializer(
-                author.my_recipes.all(),
+                author.recipes.all(),
                 many=True,
                 context={'request': request},
                 fields=['id', 'name', 'image', 'cooking_time']
@@ -210,10 +220,10 @@ class SubscribeView(viewsets.ViewSet):
 
     def delete(self, request, *args, **kwargs):
         author = get_object_or_404(user, pk=self.kwargs['user_id'])
-        if not Subscribition.objects.filter(author=author).filter(subscriber=request.user).exists():
+        if not Subscription.objects.filter(author=author).filter(subscriber=request.user).exists():
             return Response({'detail': 'Невозможно отписаться'}, status=status.HTTP_400_BAD_REQUEST)
         else:
-            Subscribition.objects.filter(author=author, subscriber=request.user).delete()
+            Subscription.objects.filter(author=author, subscriber=request.user).delete()
             return Response({'detail': f'Отписка от {author.username} успешно оформлена'}, status=status.HTTP_204_NO_CONTENT)
 
 

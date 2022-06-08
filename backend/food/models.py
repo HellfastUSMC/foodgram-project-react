@@ -65,7 +65,7 @@ class Ingridient(models.Model):
 class Recipe(models.Model):
     author = models.ForeignKey(
         user, on_delete=models.CASCADE,
-        related_name='my_recipes',
+        related_name='recipes',
         verbose_name='Автор'
     )
     name = models.CharField('Название', max_length=200)
@@ -88,9 +88,12 @@ class Recipe(models.Model):
         return self.name
 
 
-class Subscribition(models.Model):
-    author = models.ForeignKey(user, related_name='subscribitions', on_delete=models.CASCADE)
+class Subscription(models.Model):
+    author = models.ForeignKey(user, related_name='subscriptions', on_delete=models.CASCADE)
     subscriber = models.ForeignKey(user, related_name='subscribers', on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f'Подписка - автор: {self.author.email}, подписчик: {self.subscriber.email}'
 
 
 class ShoppingCart(models.Model):

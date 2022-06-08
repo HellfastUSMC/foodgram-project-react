@@ -3,7 +3,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from drf_extra_fields.fields import Base64ImageField 
 
-from food.models import Tag, Product, Recipe, Ingridient, Subscribition, ShoppingCart
+from food.models import Tag, Product, Recipe, Ingridient, Subscription, ShoppingCart
 
 
 user = get_user_model()
@@ -13,15 +13,15 @@ class UserSerializer(serializers.ModelSerializer):
     """Сериализатор пользователей."""
 
     #full_name = serializers.SerializerMethodField('get_full_name')
-    is_subscribed = serializers.SerializerMethodField('check_subscribition')
+    is_subscribed = serializers.SerializerMethodField('check_subscription')
 
     def get_full_name(self, obj):
         return obj.get_full_name()
 
-    def check_subscribition(self, obj):
+    def check_subscription(self, obj):
         request = self.context['request']
         print(obj.subscribers)
-        if Subscribition.objects.filter(author=obj).filter(subscriber=request.user).exists():
+        if Subscription.objects.filter(author=obj).filter(subscriber=request.user).exists():
             return 'true'
         else:
             return 'false'
@@ -127,10 +127,19 @@ class RecipeViewSerializer(serializers.ModelSerializer):
 
 class UserSupscriptionsSerializer(serializers.ModelSerializer): # STOPS HERE!!!
     recipes = RecipeViewSerializer(many=True, fields=['id', 'name', 'image', 'cooking_time'])
-    recipes_count = len(recipes.data)
+    #recipes_count = len(recipes.data)
+    is_subscribed = serializers.SerializerMethodField('check_subscription')
+
+    def check_subscription(self, obj):
+        request = self.context['request']
+        print(obj.subscribers)
+        if Subscription.objects.filter(author=obj).filter(subscriber=request.user).exists():
+            return 'true'
+        else:
+            return 'false'
 
     class Meta:
-        model = Subscribition
+        model = user
         fields = [
             'id',
             'username',
@@ -138,5 +147,6 @@ class UserSupscriptionsSerializer(serializers.ModelSerializer): # STOPS HERE!!!
             'last_name',
             'email',
             'is_subscribed',
-            'recipes'
+            'recipes',
+            #'recipes_count'
         ]
