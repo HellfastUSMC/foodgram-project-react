@@ -10,8 +10,8 @@ app_name = 'api'
 router = SimpleRouter()
 router.register('users', views.UserViewset, basename='users')
 router.register('tags', views.TagViewset, basename='tags')
-router.register('products', views.ProductViewset, basename='products')
-router.register('ingridients', views.IngridientViewset, basename='ingridients')
+router.register('ingridients', views.ProductViewset, basename='ingridients')
+#router.register('ingridients', views.IngridientViewset, basename='ingridients')
 router.register('recipes', views.RecipeViewset, basename='recipes')
 
 urlpatterns = [
@@ -42,7 +42,7 @@ urlpatterns = [
     path('auth/token/logout/', views.TokenLogout.as_view(), name='token_logout'),
     #path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     #path('auth/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
-    path('users/me/', views.UserMeViewset.as_view({'get': 'retrieve'})),
+    path('users/me/', views.UserViewset.as_view({'get': 'retrieve'})),
     path(
         'users/set_password/',
         views.UserSetPasswordViewset.as_view(),
