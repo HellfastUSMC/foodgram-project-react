@@ -34,14 +34,12 @@ urlpatterns = [
         name='un-subscribe'
     ),
     path(
-        'users/subscription/',
+        'users/subscriptions/',
         views.SubscribeListView.as_view({'get': 'list'}),
-        name='subscription'
+        name='subscriptions'
     ),
     path('auth/token/login/', TokenObtainPairView.as_view(), name='token_login'),
     path('auth/token/logout/', views.TokenLogout.as_view(), name='token_logout'),
-    #path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    #path('auth/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
     path('users/me/', views.UserViewset.as_view({'get': 'retrieve'})),
     path(
         'users/set_password/',

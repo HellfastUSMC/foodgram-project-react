@@ -28,7 +28,7 @@ class Tag(models.Model):
     slug = models.SlugField('Slug', unique=True)
 
     def __str__(self):
-        return self.name
+        return f'{self.name} {self.color}'
 
 
 class Product(models.Model):
@@ -59,7 +59,7 @@ class Ingridient(models.Model):
     )
 
     def __str__(self):
-        return self.product.name
+        return f'{self.product.name} {self.amount}{self.product.measurement_unit}'
 
 
 class Recipe(models.Model):
@@ -89,8 +89,15 @@ class Recipe(models.Model):
 
 
 class Subscription(models.Model):
-    author = models.ForeignKey(user, related_name='subscriptions', on_delete=models.CASCADE)
-    subscriber = models.ForeignKey(user, related_name='subscribers', on_delete=models.CASCADE)
+    author = models.ForeignKey(
+        user, related_name='subscriptions',
+        on_delete=models.CASCADE
+    )
+    subscriber = models.ForeignKey(
+        user,
+        related_name='subscribers',
+        on_delete=models.CASCADE
+    )
 
     def __str__(self):
         return f'Подписка - автор: {self.author.email}, подписчик: {self.subscriber.email}'

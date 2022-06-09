@@ -1,9 +1,16 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from drf_extra_fields.fields import Base64ImageField 
+from drf_extra_fields.fields import Base64ImageField
 
-from food.models import Tag, Product, Recipe, Ingridient, Subscription, ShoppingCart
+from food.models import (
+    Tag,
+    Product,
+    Recipe,
+    Ingridient,
+    Subscription,
+    ShoppingCart
+)
 
 
 user = get_user_model()
@@ -63,6 +70,7 @@ class IngridientViewSerializer(serializers.ModelSerializer):
         model = Ingridient
         fields = '__all__'
 
+
 class IngridientField(serializers.Field):
     def to_internal_value(self, data):
         return data
@@ -70,14 +78,23 @@ class IngridientField(serializers.Field):
     def to_representation(self, value):
         return value
 
+
 class RecipeSerializer(serializers.ModelSerializer):
     """Сериализатор названий продуктов."""
-    tags = serializers.PrimaryKeyRelatedField(queryset=Tag.objects.all(), many=True)
+    tags = serializers.PrimaryKeyRelatedField(
+        queryset=Tag.objects.all(),
+        many=True
+    )
     author = UserSerializer(read_only=True)
-    #ingridients = IngridientSerializer(many=True)
-    ingridients = IngridientField()
-    is_favorited = serializers.SerializerMethodField('_get_favorited', read_only=True)
-    is_in_shopping_cart = serializers.SerializerMethodField('_get_shopping_cart', read_only=True)
+    ingridients = serializers.SerializerMethodField(
+        '_get_post_ingridients'
+    )
+    is_favorited = serializers.SerializerMethodField(
+        '_get_favorited', read_only=True
+    )
+    is_in_shopping_cart = serializers.SerializerMethodField(
+        '_get_shopping_cart', read_only=True
+    )
     image = Base64ImageField()
 
     def __init__(self, *args, **kwargs):
@@ -86,15 +103,52 @@ class RecipeSerializer(serializers.ModelSerializer):
         super().__init__(*args, **kwargs)
 
         if fields is not None:
+            print(self.fields)
             allowed = set(fields)
             existing = set(self.fields)
             for field_name in existing - allowed:
                 self.fields.pop(field_name)
+            print(self.fields)
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
-        representation['tags'] = TagSerializer(instance.tags.all(), many=True).data
+        if 'tags' in self.fields:
+            representation['tags'] = TagSerializer(
+                instance.tags.all(),
+                many=True
+            ).data
         return representation
+
+    def _get_post_ingridients(self, obj):
+        request = self.context.get('request', None)
+        if request.method == 'GET':
+            return IngridientSerializer(obj.ingridients.all(), many=True).data
+        if request.method == 'POST':
+            for ingridient in request.data['ingridients']:
+                instance = Ingridient.objects.create(
+                    product=get_object_or_404(Product, pk=ingridient['id']),
+                    amount=ingridient['amount']
+                )
+                obj.ingridients.add(instance)
+            return IngridientSerializer(obj.ingridients.all(), many=True).data
+        if request.method == 'PATCH':
+            if request.data['ingridients']:
+                for old_ingridient in obj.ingridients.all():
+                    old_ingridient.delete()
+                obj.ingridients.clear()
+                for ingridient in request.data['ingridients']:
+                    instance = Ingridient.objects.create(
+                        product=get_object_or_404(
+                            Product,
+                            pk=ingridient['id']
+                        ),
+                        amount=ingridient['amount']
+                    )
+                    obj.ingridients.add(instance)
+                return IngridientSerializer(
+                    obj.ingridients.all(),
+                    many=True
+                ).data
 
     def _get_shopping_cart(self, obj):
         request = self.context.get('request', None)
@@ -113,47 +167,6 @@ class RecipeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
         exclude = ['favorites']
-
-
-# class RecipeViewSerializer(serializers.ModelSerializer):
-#     tags = TagSerializer(many=True)
-#     author = UserSerializer()
-#     ingridients = IngridientViewSerializer(many=True)
-#     is_favorited = serializers.SerializerMethodField('_get_favorited', read_only=True)
-#     is_in_shopping_cart = serializers.SerializerMethodField('_get_shopping_cart', read_only=True)
-
-#     def __init__(self, *args, **kwargs):
-#         # Don't pass the 'fields' arg up to the superclass
-#         fields = kwargs.pop('fields', None)
-
-#         # Instantiate the superclass normally
-#         super().__init__(*args, **kwargs)
-
-#         if fields is not None:
-#             # Drop any fields that are not specified in the `fields` argument.
-#             allowed = set(fields)
-#             existing = set(self.fields)
-#             for field_name in existing - allowed:
-#                 self.fields.pop(field_name)
-
-#     def _get_shopping_cart(self, obj):
-#         request = self.context.get('request', None)
-#         if obj.shopping_carts.filter(customer_id=request.user.id).exists():
-#             return 'true'
-#         else:
-#             return 'false'
-
-#     def _get_favorited(self, obj):
-#         request = self.context.get('request', None)
-#         if obj.favorites.filter(pk=request.user.id).exists():
-#             return 'true'
-#         else:
-#             return 'false'
-
-#     class Meta:
-#         model = Recipe
-#         #fields = '__all__'
-#         exclude = ['favorites']
 
 
 class UserSupscriptionsSerializer(serializers.ModelSerializer):
@@ -175,7 +188,6 @@ class UserSupscriptionsSerializer(serializers.ModelSerializer):
         ]
 
     def get_limited_recipes(self, obj):
-        print(self.context['request'].query_params.get('recipes_limit', None))
         limit = self.context['request'].query_params.get('recipes_limit', None)
         if limit is not None:
             queryset = obj.recipes.all().order_by('id')[:int(limit)]

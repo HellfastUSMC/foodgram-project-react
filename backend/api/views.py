@@ -124,7 +124,14 @@ class RecipeViewset(BaseViewSet):
                 self.request.user.recipes.last(),
                 context={'request': self.request}).data
             )
-    
+
+    def destroy(self, request, *args, **kwargs):
+        instance = get_object_or_404(Recipe, pk=self.kwargs['pk'])
+        for ingridient in instance.ingridients.all():
+            ingridient.delete()
+        instance.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
@@ -247,11 +254,19 @@ class SubscribeView(viewsets.ViewSet):
 
     def post(self, request, *args, **kwargs):
         author = get_object_or_404(user, pk=self.kwargs['user_id'])
-        if request.user == author or Subscription.objects.filter(author=author).filter(subscriber=request.user).exists():
-            return Response({'detail': 'Невозможно подписаться'}, status=status.HTTP_400_BAD_REQUEST)
+        if request.user == author or Subscription.objects.filter(
+            author=author
+        ).filter(subscriber=request.user).exists():
+            return Response(
+                {'error': 'Невозможно подписаться'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         else:
             Subscription.objects.create(author=author, subscriber=request.user)
-            user_data = serializers.UserSerializer(author, context={'request': request}).data
+            user_data = serializers.UserSerializer(
+                author,
+                context={'request': request}
+            ).data
             user_data['recipes'] = serializers.RecipeSerializer(
                 author.recipes.all(),
                 many=True,
@@ -262,11 +277,21 @@ class SubscribeView(viewsets.ViewSet):
 
     def delete(self, request, *args, **kwargs):
         author = get_object_or_404(user, pk=self.kwargs['user_id'])
-        if not Subscription.objects.filter(author=author).filter(subscriber=request.user).exists():
-            return Response({'detail': 'Невозможно отписаться'}, status=status.HTTP_400_BAD_REQUEST)
+        if not Subscription.objects.filter(author=author).filter(
+            subscriber=request.user
+        ).exists():
+            return Response(
+                {'error': 'Невозможно отписаться'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        Subscription.objects.filter(author=author, subscriber=request.user).delete()
-        return Response({'detail': f'Отписка от {author.username} успешно оформлена'}, status=status.HTTP_204_NO_CONTENT)
+        Subscription.objects.filter(
+            author=author, subscriber=request.user
+        ).delete()
+        return Response(
+            {'detail': f'Отписка от {author.username} успешно оформлена'},
+            status=status.HTTP_204_NO_CONTENT
+        )
 
 
 class AddToShoppingCartView(viewsets.ViewSet):
@@ -279,21 +304,38 @@ class AddToShoppingCartView(viewsets.ViewSet):
 
     def post(self, request, recipe_id):
         recipe = get_object_or_404(Recipe, pk=recipe_id)
-        shopping_cart = ShoppingCart.objects.get_or_create(customer=request.user)[0]
+        shopping_cart = ShoppingCart.objects.get_or_create(
+            customer=request.user
+        )[0]
 
         if shopping_cart.recipes.filter(pk=recipe_id).exists():
-            return Response({'detail': 'Рецепт уже добавлен'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'error': 'Рецепт уже добавлен'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         shopping_cart.recipes.add(recipe)
-        recipe_data = serializers.RecipeSerializer(recipe, context={'request': request}).data
+        recipe_data = serializers.RecipeSerializer(
+            recipe,
+            context={'request': request}
+        ).data
         return Response(recipe_data, status=status.HTTP_200_OK)
 
     def delete(self, request, recipe_id):
-        cart = get_object_or_404(ShoppingCart, pk=request.user.shopping_cart.first().id)
+        cart = get_object_or_404(
+            ShoppingCart,
+            pk=request.user.shopping_cart.first().id
+        )
         recipe = get_object_or_404(Recipe, pk=recipe_id)
 
         if not cart.recipes.filter(pk=recipe_id).exists():
-            return Response({'detail': 'Рецепт отсутствует в корзине'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'error': 'Рецепт отсутствует в корзине'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         cart.recipes.remove(recipe)
-        return Response({'detail': 'Рецепт успешно удален из корзины'}, status=status.HTTP_204_NO_CONTENT)
+        return Response(
+            {'detail': 'Рецепт успешно удален из корзины'},
+            status=status.HTTP_204_NO_CONTENT
+        )
