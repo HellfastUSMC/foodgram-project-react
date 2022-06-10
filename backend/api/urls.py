@@ -26,6 +26,11 @@ urlpatterns = [
         name='recipe_add_2_cart'
     ),
     path(
+        'recipes/download_shopping_cart/',
+        views.ExportShoppingCart.as_view({'get': 'get'}),
+        name='export_cart'
+    ),
+    path(
         'users/<int:user_id>/subscribe/',
         views.SubscribeView.as_view({'post': 'post', 'delete': 'delete'}),
         name='un-subscribe'

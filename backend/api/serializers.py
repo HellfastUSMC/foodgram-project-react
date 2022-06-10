@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from drf_extra_fields.fields import Base64ImageField
+from requests import request
 from rest_framework import serializers
 
 from food.models import (Ingredient, Product, Recipe, ShoppingCart,
@@ -88,12 +89,10 @@ class RecipeSerializer(serializers.ModelSerializer):
         super().__init__(*args, **kwargs)
 
         if fields is not None:
-            print(self.fields)
             allowed = set(fields)
             existing = set(self.fields)
             for field_name in existing - allowed:
                 self.fields.pop(field_name)
-            print(self.fields)
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
@@ -215,7 +214,8 @@ class UserSupscriptionsSerializer(serializers.ModelSerializer):
         data = RecipeSerializer(
             queryset,
             many=True,
-            fields=['id', 'name', 'image', 'cooking_time']
+            fields=['id', 'name', 'image', 'cooking_time', 'ingredients'],
+            context={'request': self.context['request']}
         ).data
         return data
 

@@ -9,6 +9,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from . import pagination
 from . import permissions as local_rights
 from . import serializers
+from .csv_gen import csv_gen as csvg
 
 user = get_user_model()
 
@@ -279,7 +280,7 @@ class AddToShoppingCartView(viewsets.ViewSet):
             recipe,
             context={'request': request}
         ).data
-        return Response(recipe_data, status=status.HTTP_200_OK)
+        return Response(recipe_data, status=status.HTTP_201_CREATED)
 
     def delete(self, request, recipe_id):
         cart = get_object_or_404(
@@ -298,4 +299,43 @@ class AddToShoppingCartView(viewsets.ViewSet):
         return Response(
             {'detail': 'Рецепт успешно удален из корзины'},
             status=status.HTTP_204_NO_CONTENT
+        )
+
+
+class ExportShoppingCart(viewsets.ViewSet):
+    permission_classes = [permissions.IsAuthenticated, ]
+
+    def get(self, request, *args, **kwargs):
+        filename = 'shopping_cart.txt'
+        queryset = user.objects.filter(
+            subscriptions__subscriber=self.request.user
+        ).order_by('id')
+        serializer = serializers.UserSupscriptionsSerializer(queryset, many=True, context={'request': request})
+        response = Response(serializer.data, content_type='text/plain; charset=UTF-8', status=status.HTTP_200_OK)
+        response['Content-Disposition'] = 'attachment; filename="{}"'.format(filename)
+        csvg('test', serializer.data)
+        return Response(serializer.data)
+
+    def update(self, request, *args, **kwargs):
+        return Response(
+            {'detail': 'Метод запрещен'},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED
+        )
+
+    def destroy(self, request, *args, **kwargs):
+        return Response(
+            {'detail': 'Метод запрещен'},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED
+        )
+
+    def create(self, request, *args, **kwargs):
+        return Response(
+            {'detail': 'Метод запрещен'},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED
+        )
+
+    def partial_update(self, request, *args, **kwargs):
+        return Response(
+            {'detail': 'Метод запрещен'},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED
         )

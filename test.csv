@@ -1,0 +1,3 @@
+id,username,first_name,last_name,email,is_subscribed,recipes_count
+1,Hell,Alex,N,1@1.ru,true,32
+2,FFas,Faz,Baz,2@2.ru,true,2
