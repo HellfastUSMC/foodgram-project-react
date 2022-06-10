@@ -1,5 +1,4 @@
 from django_filters import FilterSet, ModelMultipleChoiceFilter
-
 from food.models import Tag
 
 

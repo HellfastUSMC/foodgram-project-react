@@ -1,19 +1,14 @@
-from rest_framework import (
-    permissions,
-    viewsets,
-    views,
-    status,
-    filters,
-    mixins
-)  # ПОИСК ПО СТРОКЕ
-from rest_framework.response import Response
-from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
+from food.models import Product, Recipe, ShoppingCart, Subscription, Tag
+from rest_framework import (filters, mixins, permissions,
+                            status, views, viewsets)
+from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import RefreshToken
 
-from . import serializers, pagination, permissions as local_rights
-
-from food.models import Tag, Product, Recipe, Subscription, ShoppingCart
+from . import pagination
+from . import permissions as local_rights
+from . import serializers
 
 user = get_user_model()
 
@@ -115,9 +110,8 @@ class RecipeViewset(BaseViewSet):
     """Вьюха рецептов"""
     serializer_class = serializers.RecipeSerializer
     permission_classes = [local_rights.IsAuthenticatedAndOwner, ]
-    
+
     def create(self, request, *args, **kwargs):
-        #print(request.data)
         super().create(request, *args, **kwargs)
         return Response(
             serializers.RecipeSerializer(
@@ -127,8 +121,8 @@ class RecipeViewset(BaseViewSet):
 
     def destroy(self, request, *args, **kwargs):
         instance = get_object_or_404(Recipe, pk=self.kwargs['pk'])
-        for ingridient in instance.ingridients.all():
-            ingridient.delete()
+        for ingredient in instance.ingredients.all():
+            ingredient.delete()
         instance.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -148,18 +142,6 @@ class RecipeViewset(BaseViewSet):
                 author__id=self.request.GET.get('author')
             )
         return queryset.order_by('id')
-
-    # def get_serializer_class(self):
-    #     if self.action in ['list', 'retrieve']:
-    #         return serializers.RecipeViewSerializer
-    #     else:
-    #         return serializers.RecipeSerializer
-
-
-# class IngridientViewset(BaseViewSet):
-#     """Вьюха ингридиентов"""
-#     queryset = Ingridient.objects.all().order_by('id')
-#     serializer_class = serializers.IngridientSerializer
 
 
 class UserSetPasswordViewset(views.APIView):
@@ -227,30 +209,13 @@ class SubscribeListView(mixins.ListModelMixin, viewsets.GenericViewSet):
     serializer_class = serializers.UserSupscriptionsSerializer
 
     def get_queryset(self):
-        return user.objects.filter(subscriptions__subscriber=self.request.user).order_by('id')
+        return user.objects.filter(
+            subscriptions__subscriber=self.request.user
+        ).order_by('id')
 
 
 class SubscribeView(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated, ]
-
-    # def list(self, request, *args, **kwargs):
-    #     pagination_class = pagination.DefaultPagination
-    #     queryset = user.objects.filter(subscriptions__subscriber=request.user)
-    #     serializer_class = serializers.UserSupscriptionsSerializer
-
-    # def get(self, request, *args, **kwargs):
-    #     subs = request.user.subscribers.all()
-    #     data_store = {'results':{}}
-    #     for user in subs:
-    #         temp_user_data = serializers.UserSerializer(user.author, context={'request': request}).data
-    #         temp_user_data['recipes'] = serializers.RecipeViewSerializer(
-    #             request.user.recipes.all(),
-    #             many=True,
-    #             context={'request': request},
-    #             fields=['id', 'name', 'image', 'cooking_time']
-    #         ).data
-    #         data_store['results'][user.author.username]=temp_user_data
-    #     return Response(data_store, status=status.HTTP_200_OK)
 
     def post(self, request, *args, **kwargs):
         author = get_object_or_404(user, pk=self.kwargs['user_id'])
@@ -296,11 +261,6 @@ class SubscribeView(viewsets.ViewSet):
 
 class AddToShoppingCartView(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated, ]
-
-    # def get(self, request, recipe_id):
-    #     cart = request.user.shopping_cart.first().recipes.all().order_by('id')
-    #     cart_data = serializers.RecipeViewSerializer(cart, many=True, context={'request': request}).data
-    #     return Response(cart_data)
 
     def post(self, request, recipe_id):
         recipe = get_object_or_404(Recipe, pk=recipe_id)

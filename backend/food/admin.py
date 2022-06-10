@@ -1,5 +1,7 @@
 from django.contrib.admin import ModelAdmin, register
-from .models import Ingridient, Product, Recipe, Tag, ShoppingCart, Subscription
+
+from .models import (Ingredient, Product, Recipe, ShoppingCart, Subscription,
+                     Tag)
 
 
 @register(Tag)
@@ -12,7 +14,7 @@ class ProductAdmin(ModelAdmin):
     pass
 
 
-@register(Ingridient)
+@register(Ingredient)
 class IngridientAdmin(ModelAdmin):
     pass
 

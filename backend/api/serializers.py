@@ -1,17 +1,10 @@
-from django.shortcuts import get_object_or_404
-from rest_framework import serializers
 from django.contrib.auth import get_user_model
+from django.shortcuts import get_object_or_404
 from drf_extra_fields.fields import Base64ImageField
+from rest_framework import serializers
 
-from food.models import (
-    Tag,
-    Product,
-    Recipe,
-    Ingridient,
-    Subscription,
-    ShoppingCart
-)
-
+from food.models import (Ingredient, Product, Recipe, ShoppingCart,
+                         Subscription, Tag)
 
 user = get_user_model()
 
@@ -55,28 +48,20 @@ class TagSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class IngridientSerializer(serializers.ModelSerializer):
+class IngredientSerializer(serializers.ModelSerializer):
     """Сериализатор названий продуктов."""
     name = serializers.CharField(source='product.name')
     measurement_unit = serializers.CharField(source='product.measurement_unit')
 
     class Meta:
-        model = Ingridient
+        model = Ingredient
         exclude = ['product']
 
 
-class IngridientViewSerializer(serializers.ModelSerializer):
+class IngredientViewSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Ingridient
+        model = Ingredient
         fields = '__all__'
-
-
-class IngridientField(serializers.Field):
-    def to_internal_value(self, data):
-        return data
-
-    def to_representation(self, value):
-        return value
 
 
 class RecipeSerializer(serializers.ModelSerializer):
@@ -86,8 +71,8 @@ class RecipeSerializer(serializers.ModelSerializer):
         many=True
     )
     author = UserSerializer(read_only=True)
-    ingridients = serializers.SerializerMethodField(
-        '_get_post_ingridients'
+    ingredients = serializers.SerializerMethodField(
+        '_get_post_ingredients'
     )
     is_favorited = serializers.SerializerMethodField(
         '_get_favorited', read_only=True
@@ -119,34 +104,68 @@ class RecipeSerializer(serializers.ModelSerializer):
             ).data
         return representation
 
-    def _get_post_ingridients(self, obj):
+    def _get_post_ingredients(self, obj):
         request = self.context.get('request', None)
         if request.method == 'GET':
-            return IngridientSerializer(obj.ingridients.all(), many=True).data
+            return IngredientSerializer(obj.ingredients.all(), many=True).data
         if request.method == 'POST':
-            for ingridient in request.data['ingridients']:
-                instance = Ingridient.objects.create(
-                    product=get_object_or_404(Product, pk=ingridient['id']),
-                    amount=ingridient['amount']
+            for ingredient in request.data['ingredients']:
+                msg = {}
+                if not Ingredient.objects.filter(pk=ingredient['id']).exists():
+                    msg['ingredients'] = (
+                        f'Объект не найден, проверьте'
+                        f'значение поля id - {ingredient["id"]}'
+                    )
+                if 0 >= ingredient['amount'] or not isinstance(
+                    ingredient['amount'],
+                    int
+                ):
+                    msg['amount'] = (
+                        f'Проверьте значение поля amount '
+                        f'- {ingredient["amount"]}'
+                    )
+                if msg:
+                    raise serializers.ValidationError(msg, code=400)
+                instance = Ingredient.objects.create(
+                    product=get_object_or_404(Product, pk=ingredient['id']),
+                    amount=ingredient['amount']
                 )
-                obj.ingridients.add(instance)
-            return IngridientSerializer(obj.ingridients.all(), many=True).data
+                obj.ingredients.add(instance)
+            return IngredientSerializer(obj.ingredients.all(), many=True).data
         if request.method == 'PATCH':
-            if request.data['ingridients']:
-                for old_ingridient in obj.ingridients.all():
-                    old_ingridient.delete()
-                obj.ingridients.clear()
-                for ingridient in request.data['ingridients']:
-                    instance = Ingridient.objects.create(
+            if request.data['ingredients']:
+                for old_ingredient in obj.ingredients.all():
+                    old_ingredient.delete()
+                obj.ingredients.clear()
+                for ingredient in request.data['ingredients']:
+                    msg = {}
+                    if not Ingredient.objects.filter(
+                        pk=ingredient['id']
+                    ).exists():
+                        msg['ingredients'] = (
+                            f'Объект не найден, проверьте'
+                            f'значение поля id - {ingredient["id"]}'
+                        )
+                    if 0 >= ingredient['amount'] or not isinstance(
+                        ingredient['amount'],
+                        int
+                    ):
+                        msg['amount'] = (
+                            f'Проверьте значение поля amount '
+                            f'- {ingredient["amount"]}'
+                        )
+                    if msg:
+                        raise serializers.ValidationError(msg, code=400)
+                    instance = Ingredient.objects.create(
                         product=get_object_or_404(
                             Product,
-                            pk=ingridient['id']
+                            pk=ingredient['id']
                         ),
-                        amount=ingridient['amount']
+                        amount=ingredient['amount']
                     )
-                    obj.ingridients.add(instance)
-                return IngridientSerializer(
-                    obj.ingridients.all(),
+                    obj.ingredients.add(instance)
+                return IngredientSerializer(
+                    obj.ingredients.all(),
                     many=True
                 ).data
 

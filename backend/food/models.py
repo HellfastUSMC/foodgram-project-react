@@ -1,27 +1,16 @@
 from django.contrib.auth import get_user_model
+from django.core.validators import (MaxLengthValidator, MaxValueValidator,
+                                    MinLengthValidator, MinValueValidator)
 from django.db import models
-from django.core.validators import (MaxValueValidator,
-                                    MinValueValidator,
-                                    MinLengthValidator,
-                                    MaxLengthValidator
-                                    )
-
 
 user = get_user_model()
-
-
-# class Unit(models.Model):
-#     name = models.CharField('Единица измерения', max_length=30, unique=True)
-
-#     def __str__(self):
-#         return self.name
 
 
 class Tag(models.Model):
     name = models.CharField('Название', max_length=30, unique=True)
     color = models.CharField(
         'Цвет',
-        max_length=7, 
+        max_length=7,
         validators=[MinLengthValidator(7), MaxLengthValidator(7)],
         unique=True
     )
@@ -46,11 +35,11 @@ class Product(models.Model):
         return self.name
 
 
-class Ingridient(models.Model):
+class Ingredient(models.Model):
     product = models.ForeignKey(
         Product,
         verbose_name='Продукт',
-        related_name='ingridients',
+        related_name='ingredients',
         on_delete=models.CASCADE
     )
     amount = models.IntegerField(
@@ -59,7 +48,8 @@ class Ingridient(models.Model):
     )
 
     def __str__(self):
-        return f'{self.product.name} {self.amount}{self.product.measurement_unit}'
+        return (f'{self.product.name} {self.amount}'
+                f'{self.product.measurement_unit}')
 
 
 class Recipe(models.Model):
@@ -71,7 +61,7 @@ class Recipe(models.Model):
     name = models.CharField('Название', max_length=200)
     image = models.ImageField('Обложка')
     text = models.TextField('Описание')
-    ingridients = models.ManyToManyField(Ingridient, related_name='recipes')
+    ingredients = models.ManyToManyField(Ingredient, related_name='recipes')
     tags = models.ManyToManyField(Tag, related_name='recipes')
     cooking_time = models.IntegerField(
         'Время приготовления',
@@ -100,7 +90,8 @@ class Subscription(models.Model):
     )
 
     def __str__(self):
-        return f'Подписка - автор: {self.author.email}, подписчик: {self.subscriber.email}'
+        return (f'Подписка - автор: {self.author.email}'
+                f', подписчик: {self.subscriber.email}')
 
 
 class ShoppingCart(models.Model):
@@ -110,7 +101,11 @@ class ShoppingCart(models.Model):
         related_name='shopping_cart',
         verbose_name='Покупатель'
     )
-    recipes = models.ManyToManyField(Recipe, related_name='shopping_carts', blank=True)
+    recipes = models.ManyToManyField(
+        Recipe,
+        related_name='shopping_carts',
+        blank=True
+    )
 
     def __str__(self):
         return f'Корзина {self.customer.username}'
