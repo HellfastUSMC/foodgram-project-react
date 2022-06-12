@@ -1,10 +1,15 @@
+import os
+from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.db.models import Sum
+from django.http import FileResponse
 from django.shortcuts import get_object_or_404
-from food.models import Product, Recipe, ShoppingCart, Subscription, Tag
+from food.models import Product, Recipe, ShoppingCart, Subscription, Tag, Ingredient
 from rest_framework import (filters, mixins, permissions,
                             status, views, viewsets)
 from rest_framework.response import Response
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.authtoken.models import Token
+# from rest_framework_simplejwt.tokens import RefreshToken
 
 from . import pagination
 from . import permissions as local_rights
@@ -14,13 +19,60 @@ from .csv_gen import csv_gen as csvg
 user = get_user_model()
 
 
-class TokenLogout(views.APIView):
-    permission_classes = (permissions.IsAuthenticated,)
+# class TokenLogout(views.APIView):
+#     permission_classes = (permissions.IsAuthenticated,)
 
-    def post(self, request):
-        ref_str = RefreshToken.for_user(request.user)
-        token = RefreshToken(ref_str)
-        token.blacklist()
+#     def post(self, request):
+#         ref_str = RefreshToken.for_user(request.user)
+#         token = RefreshToken(ref_str)
+#         token.blacklist()
+#         return Response(status=status.HTTP_204_NO_CONTENT)
+
+def check_fields(request, fields):
+    response_message = {}
+    for field in fields:
+        if field not in request.data or not request.data[field]:
+            response_message[field] = f'Проверьте поле {field}'
+    if response_message:
+        return response_message
+    return None
+
+
+class TokenLogin(viewsets.ViewSet):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        fields = ['email', 'password']
+        check_errors = check_fields(request, fields)
+        if check_errors:
+            return Response(
+                check_errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        cur_user = get_object_or_404(user, email=request.data['email'])
+        if not cur_user.check_password(request.data['password']):
+            return Response(
+                {'password': 'Неверный пароль'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if Token.objects.filter(user=cur_user).exists():
+            return Response(
+                {'auth_token': cur_user.auth_token.key},
+                status=status.HTTP_201_CREATED
+            )
+        token = Token.objects.create(user=cur_user)
+        return Response(
+            {'auth_token': f'{token}'},
+            status=status.HTTP_201_CREATED
+        )
+
+
+class TokenLogout(viewsets.ViewSet):
+    permission_classes = [permissions.IsAuthenticated, ]
+
+    def post(self, request, *args, **kwargs):
+        token = get_object_or_404(Token, user=request.user)
+        token.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -146,13 +198,9 @@ class RecipeViewset(BaseViewSet):
 
 
 class UserSetPasswordViewset(views.APIView):
+    permission_classes = [permissions.IsAuthenticated, ]
 
     def post(self, request):
-        if not request.user.is_authenticated:
-            return Response(
-                {'detail': 'Необходима авторизация'},
-                status=status.HTTP_401_UNAUTHORIZED
-            )
         cur_user = request.user
         response_message = {}
         fields = ['old_password', 'new_password']
@@ -265,9 +313,9 @@ class AddToShoppingCartView(viewsets.ViewSet):
 
     def post(self, request, recipe_id):
         recipe = get_object_or_404(Recipe, pk=recipe_id)
-        shopping_cart = ShoppingCart.objects.get_or_create(
+        shopping_cart, stats = ShoppingCart.objects.get_or_create(
             customer=request.user
-        )[0]
+        )
 
         if shopping_cart.recipes.filter(pk=recipe_id).exists():
             return Response(
@@ -305,16 +353,21 @@ class AddToShoppingCartView(viewsets.ViewSet):
 class ExportShoppingCart(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated, ]
 
-    def get(self, request, *args, **kwargs):
-        filename = 'shopping_cart.txt'
-        queryset = user.objects.filter(
-            subscriptions__subscriber=self.request.user
-        ).order_by('id')
-        serializer = serializers.UserSupscriptionsSerializer(queryset, many=True, context={'request': request})
-        response = Response(serializer.data, content_type='text/plain; charset=UTF-8', status=status.HTTP_200_OK)
-        response['Content-Disposition'] = 'attachment; filename="{}"'.format(filename)
-        csvg('test', serializer.data)
-        return Response(serializer.data)
+    def get(self, request):
+        data = list(request.user.shopping_cart.recipes.all().values(
+            'ingredients__product__name',
+            'ingredients__product__measurement_unit'
+        ).annotate(amount=Sum('ingredients__amount')))
+        sorted_data = sorted(data, key=lambda d: d['ingredients__product__name'])
+        #filepath = os.path.join(settings.BASE_DIR, os.path.join('carts', f'{request.user.username}.txt'))
+        with open(f'{request.user.username}_shopping_cart.txt', 'w', encoding='utf-8') as file:
+            for product in sorted_data:
+                file.write(f"{product['ingredients__product__name']}: {product['amount']} {product['ingredients__product__measurement_unit']}")
+                file.write('\n')
+        file = open(f'{request.user.username}_shopping_cart.txt', 'rb')
+        response = FileResponse(file, filename=f'{request.user.username}_shopping_cart.txt')
+        response['Content-Disposition'] = ('attachment; filename={0}'.format(f'{request.user.username}_shopping_cart.txt'))
+        return response
 
     def update(self, request, *args, **kwargs):
         return Response(

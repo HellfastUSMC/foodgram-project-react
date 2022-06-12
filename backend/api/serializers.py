@@ -1,7 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from drf_extra_fields.fields import Base64ImageField
-from requests import request
 from rest_framework import serializers
 
 from food.models import (Ingredient, Product, Recipe, ShoppingCart,
@@ -23,6 +22,19 @@ class UserSerializer(serializers.ModelSerializer):
                 return 'true'
             return 'false'
 
+    def create(self, validated_data):
+        password = validated_data.pop('password', None)
+        instance = self.Meta.model(**validated_data)
+        if password is not None:
+            instance.set_password(password)
+        instance.save()
+        return instance
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation.pop('password')
+        return representation
+
     class Meta:
         model = user
         fields = [
@@ -31,6 +43,7 @@ class UserSerializer(serializers.ModelSerializer):
             'first_name',
             'last_name',
             'email',
+            'password',
             'is_subscribed'
         ]
 
@@ -229,3 +242,18 @@ class UserSupscriptionsSerializer(serializers.ModelSerializer):
         ).exists():
             return 'true'
         return 'false'
+
+
+class ShoppingCartSerializer(serializers.ListSerializer):
+    ingredients = serializers.SerializerMethodField('_get_recipes_serializer')
+
+    def _get_recipes_serializer(self):
+        request = self.context['request']
+        serializer = RecipeSerializer(read_only=True, many=True, context={'request': request})
+        return serializer.data
+
+    class Meta:
+        model = Recipe
+        fields = [
+            'recipes',
+        ]

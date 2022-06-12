@@ -95,7 +95,7 @@ class Subscription(models.Model):
 
 
 class ShoppingCart(models.Model):
-    customer = models.ForeignKey(
+    customer = models.OneToOneField(
         user,
         on_delete=models.CASCADE,
         related_name='shopping_cart',
