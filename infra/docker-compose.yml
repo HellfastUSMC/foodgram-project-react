@@ -46,7 +46,7 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ../frontend/:/app/result_build/
-    
+
 volumes:
   static_value:
   media_value:
