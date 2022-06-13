@@ -41,7 +41,7 @@ jobs:
           sudo docker compose stop
           sudo docker compose rm infra
           touch .env
-          cd dev/
+          cd dev/foodgram-project-react/infra/
           pwd
           ls -a
           echo DB_ENGINE=${{ secrets.DB_ENGINE }} >> .env
