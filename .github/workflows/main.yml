@@ -47,6 +47,10 @@ jobs:
           echo DB_PORT=${{ secrets.DB_PORT }} >> .env
           cd infra/
           sudo docker compose up -d
+          sudo docker compose exec web python manage.py makemigrations
+          sudo docker compose exec web python manage.py migrate
+          sudo docker compose exec web python manage.py collectstatic
+
           
   send_message:
     runs-on: ubuntu-latest
