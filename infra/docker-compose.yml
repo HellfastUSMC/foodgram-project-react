@@ -1,6 +1,12 @@
 version: '3.3'
 
 services:
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    volumes:
+      - ../frontend/:/app/result_build/
   db:
     image: postgres:13.0-alpine
     volumes:
@@ -40,12 +46,6 @@ services:
     depends_on:
       - web
 
-  frontend:
-    build:
-      context: ../frontend
-      dockerfile: Dockerfile
-    volumes:
-      - ../frontend/:/app/result_build/
 
 volumes:
   static_value:
