@@ -1,32 +1,21 @@
-import os
-from django.conf import settings
+
 from django.contrib.auth import get_user_model
 from django.db.models import Sum
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404
-from food.models import Product, Recipe, ShoppingCart, Subscription, Tag, Ingredient
+from django_filters import rest_framework as dfilters
+from food.models import Product, Recipe, ShoppingCart, Subscription, Tag
 from rest_framework import (filters, mixins, permissions,
                             status, views, viewsets)
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
-# from rest_framework_simplejwt.tokens import RefreshToken
 
 from . import pagination
 from . import permissions as local_rights
 from . import serializers
-from .csv_gen import csv_gen as csvg
+from . import filters as local_filters
 
 user = get_user_model()
-
-
-# class TokenLogout(views.APIView):
-#     permission_classes = (permissions.IsAuthenticated,)
-
-#     def post(self, request):
-#         ref_str = RefreshToken.for_user(request.user)
-#         token = RefreshToken(ref_str)
-#         token.blacklist()
-#         return Response(status=status.HTTP_204_NO_CONTENT)
 
 def check_fields(request, fields):
     response_message = {}
@@ -131,8 +120,9 @@ class ProductViewset(BaseViewSet):
     """Вьюха продуктов"""
     queryset = Product.objects.all().order_by('id')
     serializer_class = serializers.ProductSerializer
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('^name',)
+    filter_backends = (dfilters.DjangoFilterBackend, )
+    filterset_class = local_filters.ProductFilter
+    #filterset_fields = ('icontains__name', )
 
     def update(self, request, *args, **kwargs):
         return Response(
@@ -166,10 +156,11 @@ class RecipeViewset(BaseViewSet):
 
     def create(self, request, *args, **kwargs):
         super().create(request, *args, **kwargs)
+        request = self.request
         return Response(
             serializers.RecipeSerializer(
                 self.request.user.recipes.last(),
-                context={'request': self.request}).data
+                context={'request': request}).data
             )
 
     def destroy(self, request, *args, **kwargs):
@@ -193,6 +184,10 @@ class RecipeViewset(BaseViewSet):
         if self.request.GET.get('author'):
             queryset = queryset.filter(
                 author__id=self.request.GET.get('author')
+            )
+        if self.request.GET.get('is_in_shopping_cart') == '1':
+            queryset = queryset.filter(
+                shopping_carts=self.request.user.shopping_cart
             )
         return queryset.order_by('id')
 
@@ -223,32 +218,36 @@ class UserSetPasswordViewset(views.APIView):
 
 
 class AddToFavoriteView(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
     def post(self, request, recipe_id):
-        if self.request.user.is_authenticated:
-            user = self.request.user
-            recipe_obj = get_object_or_404(Recipe, pk=recipe_id)
-            recipe_obj.favorites.add(user)
+        cur_user = self.request.user
+        recipe_obj = get_object_or_404(Recipe, pk=recipe_id)
+        if recipe_obj.favorites.filter(id=cur_user.id).exists():
             return Response(
-                {'detail': 'Объект добавлен в избранное!'},
-                status=status.HTTP_200_OK
+                {'detail': 'Рецепт уже добавлен в избранное'},
+                status=status.HTTP_400_BAD_REQUEST
             )
-        return Response(
-            {'detail': 'Учетные данные не были предоставлены.'},
-            status=status.HTTP_401_UNAUTHORIZED
-        )
+        recipe_obj.favorites.add(cur_user)
+        recipe_data = serializers.RecipeSerializer(
+            recipe_obj,
+            context={'request': request},
+            fields=['id', 'name', 'image', 'cooking_time']
+        ).data
+        return Response(recipe_data, status=status.HTTP_201_CREATED)
 
     def delete(self, request, recipe_id):
-        if self.request.user.is_authenticated:
-            user = self.request.user
-            recipe_obj = get_object_or_404(Recipe, pk=recipe_id)
-            recipe_obj.favorites.remove(user)
+        cur_user = self.request.user
+        recipe_obj = get_object_or_404(Recipe, pk=recipe_id)
+        if not recipe_obj.favorites.filter(id=cur_user.id).exists():
             return Response(
-                {'detail': 'Объект удален из избранного!'},
-                status=status.HTTP_204_NO_CONTENT
+                {'detail': 'Рецепт отсутствует в избранном'},
+                status=status.HTTP_400_BAD_REQUEST
             )
+        recipe_obj.favorites.remove(cur_user)
         return Response(
-            {'detail': 'Учетные данные не были предоставлены.'},
-            status=status.HTTP_401_UNAUTHORIZED
+            {'detail': 'Объект удален из избранного!'},
+            status=status.HTTP_204_NO_CONTENT
         )
 
 
@@ -277,17 +276,11 @@ class SubscribeView(viewsets.ViewSet):
             )
         else:
             Subscription.objects.create(author=author, subscriber=request.user)
-            user_data = serializers.UserSerializer(
+            user_data = serializers.UserSupscriptionsSerializer(
                 author,
                 context={'request': request}
-            ).data
-            user_data['recipes'] = serializers.RecipeSerializer(
-                author.recipes.all(),
-                many=True,
-                context={'request': request},
-                fields=['id', 'name', 'image', 'cooking_time']
-            ).data
-            return Response(user_data, status=status.HTTP_200_OK)
+            )
+            return Response(user_data.data, status=status.HTTP_201_CREATED)
 
     def delete(self, request, *args, **kwargs):
         author = get_object_or_404(user, pk=self.kwargs['user_id'])
@@ -326,14 +319,15 @@ class AddToShoppingCartView(viewsets.ViewSet):
         shopping_cart.recipes.add(recipe)
         recipe_data = serializers.RecipeSerializer(
             recipe,
-            context={'request': request}
+            context={'request': request},
+            fields=['id', 'name', 'image', 'cooking_time']
         ).data
         return Response(recipe_data, status=status.HTTP_201_CREATED)
 
     def delete(self, request, recipe_id):
         cart = get_object_or_404(
             ShoppingCart,
-            pk=request.user.shopping_cart.first().id
+            pk=request.user.shopping_cart.id
         )
         recipe = get_object_or_404(Recipe, pk=recipe_id)
 

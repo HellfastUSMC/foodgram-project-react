@@ -1,5 +1,8 @@
 import csv
-
+from weasyprint import HTML  
+from django.template import Template, Context
+from django.template.loader import render_to_string, get_template
+import json
 
 def csv_gen(name, data):
     key_list = [key for key in data[0] if key != 'recipes']
@@ -15,3 +18,9 @@ def csv_gen(name, data):
                 cur_rec.append(record[key])
         file.writerow(cur_rec)
     return file
+
+
+def pdf_gen(name, data):
+    data['name'] = name
+    rendered_string = render_to_string('pdf.html', data)
+    HTML(string=rendered_string).write_pdf(f'{name}.pdf')

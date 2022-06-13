@@ -3,7 +3,7 @@ from django.shortcuts import get_object_or_404
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 
-from food.models import (Ingredient, Product, Recipe, ShoppingCart,
+from food.models import (Ingredient, Product, Recipe,
                          Subscription, Tag)
 
 user = get_user_model()
@@ -72,12 +72,6 @@ class IngredientSerializer(serializers.ModelSerializer):
         exclude = ['product']
 
 
-class IngredientViewSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Ingredient
-        fields = '__all__'
-
-
 class RecipeSerializer(serializers.ModelSerializer):
     """Сериализатор названий продуктов."""
     tags = serializers.PrimaryKeyRelatedField(
@@ -118,9 +112,18 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def _get_post_ingredients(self, obj):
         request = self.context.get('request', None)
-        if request.method == 'GET':
+        if (
+            request.method == 'GET' or
+            'shopping_cart' in request.get_full_path() or
+            'view' not in self.context
+        ):
             return IngredientSerializer(obj.ingredients.all(), many=True).data
         if request.method == 'POST':
+            if 'ingredients' not in request.data:
+                raise serializers.ValidationError(
+                    {'ingredients': 'Поле ingredients обязательное'},
+                    code=400
+                )
             for ingredient in request.data['ingredients']:
                 msg = {}
                 if not Ingredient.objects.filter(pk=ingredient['id']).exists():
@@ -198,6 +201,7 @@ class RecipeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
         exclude = ['favorites']
+        extra_kwargs = {'ingredients': {'required': True,'allow_blank': False}}
 
 
 class UserSupscriptionsSerializer(serializers.ModelSerializer):
@@ -227,7 +231,7 @@ class UserSupscriptionsSerializer(serializers.ModelSerializer):
         data = RecipeSerializer(
             queryset,
             many=True,
-            fields=['id', 'name', 'image', 'cooking_time', 'ingredients'],
+            fields=['id', 'name', 'image', 'cooking_time'],
             context={'request': self.context['request']}
         ).data
         return data
@@ -242,18 +246,3 @@ class UserSupscriptionsSerializer(serializers.ModelSerializer):
         ).exists():
             return 'true'
         return 'false'
-
-
-class ShoppingCartSerializer(serializers.ListSerializer):
-    ingredients = serializers.SerializerMethodField('_get_recipes_serializer')
-
-    def _get_recipes_serializer(self):
-        request = self.context['request']
-        serializer = RecipeSerializer(read_only=True, many=True, context={'request': request})
-        return serializer.data
-
-    class Meta:
-        model = Recipe
-        fields = [
-            'recipes',
-        ]
