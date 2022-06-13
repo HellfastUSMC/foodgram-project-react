@@ -5,7 +5,7 @@ from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from django_filters import rest_framework as dfilters
 from food.models import Product, Recipe, ShoppingCart, Subscription, Tag
-from rest_framework import (filters, mixins, permissions,
+from rest_framework import (mixins, permissions,
                             status, views, viewsets)
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
@@ -16,6 +16,7 @@ from . import serializers
 from . import filters as local_filters
 
 user = get_user_model()
+
 
 def check_fields(request, fields):
     response_message = {}
@@ -352,19 +353,34 @@ class ExportShoppingCart(viewsets.ViewSet):
             'ingredients__product__name',
             'ingredients__product__measurement_unit'
         ).annotate(amount=Sum('ingredients__amount')))
-        sorted_data = sorted(data, key=lambda d: d['ingredients__product__name'])
-        #filepath = os.path.join(settings.BASE_DIR, os.path.join('carts', f'{request.user.username}.txt'))
-        with open(f'{request.user.username}_shopping_cart.txt', 'w', encoding='utf-8') as file:
+        sorted_data = sorted(
+            data,
+            key=lambda d: d['ingredients__product__name']
+        )
+        with open(
+            f'{request.user.username}_shopping_cart.txt',
+            'w',
+            encoding='utf-8'
+        ) as file:
             file.write(f'Список покупок для {request.user.username}:')
             file.write('\n')
             for product in sorted_data:
-                file.write(f"{product['ingredients__product__name']} ({product['ingredients__product__measurement_unit']}) - {product['amount']}")
+                file.write(
+                    f"{product['ingredients__product__name']}"
+                    f" ({product['ingredients__product__measurement_unit']})"
+                    f" - {product['amount']}"
+                )
                 file.write('\n')
             file.write('\n')
-            file.write(f'Составлено с помощью FoodGram')
+            file.write('Составлено с помощью FoodGram')
         file = open(f'{request.user.username}_shopping_cart.txt', 'rb')
-        response = FileResponse(file, filename=f'{request.user.username}_shopping_cart.txt')
-        response['Content-Disposition'] = ('attachment; filename={0}'.format(f'{request.user.username}_shopping_cart.txt'))
+        response = FileResponse(
+            file,
+            filename=f'{request.user.username}_shopping_cart.txt'
+        )
+        response['Content-Disposition'] = (
+            'attachment; filename={0}'.format(f'{request.user.username}_shopping_cart.txt')
+        )
         return response
 
     def update(self, request, *args, **kwargs):

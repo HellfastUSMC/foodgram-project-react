@@ -1,6 +1,5 @@
 from django.urls import include, path
 from rest_framework.routers import SimpleRouter
-from rest_framework_simplejwt.views import TokenObtainPairView
 
 from . import views
 
@@ -40,12 +39,6 @@ urlpatterns = [
         views.SubscribeListView.as_view({'get': 'list'}),
         name='subscriptions'
     ),
-    # path(
-    #     '', include('djoser.urls.base')
-    # ),
-    # path(
-    #     'auth/', include('djoser.urls.authtoken')
-    # ),
     path(
         'auth/token/login/',
         views.TokenLogin.as_view({'post': 'post', }),
