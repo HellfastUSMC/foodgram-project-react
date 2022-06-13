@@ -36,14 +36,11 @@ jobs:
         key: ${{ secrets.SSH_KEY }}
         passphrase: ${{ secrets.PASSPHRASE }}
         script: |
-          pwd
-          ls -a
+          cd dev/foodgram-project-react/infra/
           sudo docker compose stop
           sudo docker compose rm infra
+          rm .env
           touch .env
-          cd dev/foodgram-project-react/infra/
-          pwd
-          ls -a
           echo DB_ENGINE=${{ secrets.DB_ENGINE }} >> .env
           echo DB_NAME=${{ secrets.DB_NAME }} >> .env
           echo POSTGRES_USER=${{ secrets.POSTGRES_USER }} >> .env
@@ -51,6 +48,8 @@ jobs:
           echo DB_HOST=${{ secrets.DB_HOST }} >> .env
           echo DB_PORT=${{ secrets.DB_PORT }} >> .env
           sudo docker compose up -d
+          sudo docker compose exec web python manage.py makemigrations
+          sudo docker compose exec web python manage.py migrate
 
           
   send_message:
