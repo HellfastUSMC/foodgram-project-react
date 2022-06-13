@@ -15,7 +15,7 @@ services:
       - ./.env
 
   web:
-    image: hellfast/yamdb_final:v0.1
+    image: hellfast/foodgram:v1.0
     restart: always
     volumes:
       - static_value:/app/static/
