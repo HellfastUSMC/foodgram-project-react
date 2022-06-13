@@ -1,8 +1,8 @@
 from rest_framework.permissions import SAFE_METHODS, BasePermission
+from . import views
 
 
-class IsOwnerOrReadOnly(BasePermission):
-
+class IsOwnerPostOrReadOnly(BasePermission):
     def has_permission(self, request, view):
         return True
 
@@ -10,9 +10,17 @@ class IsOwnerOrReadOnly(BasePermission):
         return request.method in SAFE_METHODS or obj.author == request.user
 
 
+class IsOwnerOrReadOnly(BasePermission):
+    def has_permission(self, request, view):
+        return request.method in SAFE_METHODS
+
+    def has_object_permission(self, request, view, obj):
+        return request.method in SAFE_METHODS or obj.author == request.user
+
+
 class IsOwnerOrReadOnlyAndPostAll(BasePermission):
     def has_permission(self, request, view):
-        if view.action == 'create':
+        if view.action in ['create', 'retrive', 'list', 'detail']:
             return True
         return request.user.is_authenticated
 

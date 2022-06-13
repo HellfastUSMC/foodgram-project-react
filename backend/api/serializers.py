@@ -20,7 +20,7 @@ class UserSerializer(serializers.ModelSerializer):
                 subscriber=request.user
             ).exists():
                 return 'true'
-            return 'false'
+        return 'false'
 
     def create(self, validated_data):
         password = validated_data.pop('password', None)

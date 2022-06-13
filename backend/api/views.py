@@ -28,7 +28,7 @@ def check_fields(request, fields):
 
 
 class TokenLogin(viewsets.ViewSet):
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [local_rights.IsOwnerPostOrReadOnly]
 
     def post(self, request, *args, **kwargs):
         fields = ['email', 'password']
@@ -67,13 +67,13 @@ class TokenLogout(viewsets.ViewSet):
 
 class BaseViewSet(viewsets.ModelViewSet):
     """Базовая вьюха."""
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     pagination_class = pagination.DefaultPagination
 
 
 class UserViewset(BaseViewSet):
     """Вьюха пользователей"""
-    permission_classes = [local_rights.IsOwnerOrReadOnlyAndPostAll]
+    permission_classes = [local_rights.IsOwnerPostOrReadOnly]
     queryset = user.objects.all().order_by('id')
     serializer_class = serializers.UserSerializer
 
@@ -118,11 +118,11 @@ class TagViewset(BaseViewSet):
 
 class ProductViewset(BaseViewSet):
     """Вьюха продуктов"""
+    permission_classes = [permissions.IsAuthenticated, ]
     queryset = Product.objects.all().order_by('id')
     serializer_class = serializers.ProductSerializer
     filter_backends = (dfilters.DjangoFilterBackend, )
     filterset_class = local_filters.ProductFilter
-    #filterset_fields = ('icontains__name', )
 
     def update(self, request, *args, **kwargs):
         return Response(
@@ -152,7 +152,7 @@ class ProductViewset(BaseViewSet):
 class RecipeViewset(BaseViewSet):
     """Вьюха рецептов"""
     serializer_class = serializers.RecipeSerializer
-    permission_classes = [local_rights.IsAuthenticatedAndOwner, ]
+    permission_classes = [local_rights.IsOwnerOrReadOnly, ]
 
     def create(self, request, *args, **kwargs):
         super().create(request, *args, **kwargs)
@@ -355,9 +355,13 @@ class ExportShoppingCart(viewsets.ViewSet):
         sorted_data = sorted(data, key=lambda d: d['ingredients__product__name'])
         #filepath = os.path.join(settings.BASE_DIR, os.path.join('carts', f'{request.user.username}.txt'))
         with open(f'{request.user.username}_shopping_cart.txt', 'w', encoding='utf-8') as file:
+            file.write(f'Список покупок для {request.user.username}:')
+            file.write('\n')
             for product in sorted_data:
-                file.write(f"{product['ingredients__product__name']}: {product['amount']} {product['ingredients__product__measurement_unit']}")
+                file.write(f"{product['ingredients__product__name']} ({product['ingredients__product__measurement_unit']}) - {product['amount']}")
                 file.write('\n')
+            file.write('\n')
+            file.write(f'Составлено с помощью FoodGram')
         file = open(f'{request.user.username}_shopping_cart.txt', 'rb')
         response = FileResponse(file, filename=f'{request.user.username}_shopping_cart.txt')
         response['Content-Disposition'] = ('attachment; filename={0}'.format(f'{request.user.username}_shopping_cart.txt'))
