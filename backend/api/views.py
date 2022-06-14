@@ -387,8 +387,7 @@ class ExportShoppingCart(viewsets.ViewSet):
         # )
         with open(
             f'{request.user.username}_shopping_cart.txt',
-            'w',
-            encoding='utf-8'
+            'wb'
         ) as file:
             file.write(
                 f'Список покупок для {request.user.username}:'.encode('utf8')
