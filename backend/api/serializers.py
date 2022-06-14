@@ -149,7 +149,7 @@ class RecipeSerializer(serializers.ModelSerializer):
                 obj.ingredients.add(instance)
             return IngredientSerializer(obj.ingredients.all(), many=True).data
         if request.method == 'PATCH':
-            if request.data['ingredients']:
+            if 'ingredients' in request.data:
                 for old_ingredient in obj.ingredients.all():
                     old_ingredient.delete()
                 obj.ingredients.clear()
