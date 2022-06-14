@@ -204,7 +204,8 @@ class RecipeViewset(BaseViewSet):
     def get_queryset(self):
         queryset = Recipe.objects.all().order_by('id')
         if self.request.GET.get('is_favorited') == '1':
-            queryset = queryset.filter(favorites__id=self.request.user.id)
+            # queryset = queryset.filter(favorites__id=self.request.user.id)
+            queryset = self.request.user.favorites.all()
         if self.request.GET.getlist('tags'):
             queryset = queryset.filter(
                 tags__slug__in=self.request.GET.getlist('tags')
