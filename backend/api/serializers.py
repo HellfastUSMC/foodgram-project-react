@@ -19,8 +19,8 @@ class UserSerializer(serializers.ModelSerializer):
             if Subscription.objects.filter(author=obj).filter(
                 subscriber=request.user
             ).exists():
-                return 'true'
-        return 'false'
+                return True
+        return False
 
     def create(self, validated_data):
         password = validated_data.pop('password', None)
@@ -188,16 +188,16 @@ class RecipeSerializer(serializers.ModelSerializer):
     def _get_shopping_cart(self, obj):
         request = self.context.get('request', None)
         if obj.shopping_carts.filter(customer_id=request.user.id).exists():
-            return 'true'
+            return True
         else:
-            return 'false'
+            return False
 
     def _get_favorited(self, obj):
         request = self.context.get('request', None)
         if obj.favorites.filter(pk=request.user.id).exists():
-            return 'true'
+            return True
         else:
-            return 'false'
+            return False
 
     class Meta:
         model = Recipe
@@ -245,5 +245,5 @@ class UserSupscriptionsSerializer(serializers.ModelSerializer):
         if Subscription.objects.filter(author=obj).filter(
             subscriber=request.user
         ).exists():
-            return 'true'
-        return 'false'
+            return True
+        return False
