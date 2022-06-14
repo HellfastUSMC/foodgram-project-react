@@ -69,7 +69,7 @@ class TokenLogout(viewsets.ViewSet):
 class BaseViewSet(viewsets.ModelViewSet):
     """Базовая вьюха."""
     permission_classes = [
-        permissions.IsAuthenticatedOrReadOnly, local_rights.IsAdmin
+        permissions.IsAuthenticatedOrReadOnly | local_rights.IsAdmin
     ]
     pagination_class = pagination.DefaultPagination
 
@@ -77,7 +77,7 @@ class BaseViewSet(viewsets.ModelViewSet):
 class UserViewset(BaseViewSet):
     """Вьюха пользователей"""
     permission_classes = [
-        local_rights.AllowPostOrReadOnly, local_rights.IsAdmin
+        local_rights.AllowPostOrReadOnly | local_rights.IsAdmin
     ]
     queryset = user.objects.all().order_by('id')
     serializer_class = serializers.UserSerializer
@@ -111,7 +111,7 @@ class UserViewset(BaseViewSet):
 
 class TagViewset(BaseViewSet):
     """Вьюха тэгов"""
-    permission_classes = [local_rights.ReadOnly, local_rights.IsAdmin]
+    permission_classes = [local_rights.ReadOnly | local_rights.IsAdmin]
     pagination_class = None
     queryset = Tag.objects.all().order_by('id')
     serializer_class = serializers.TagSerializer
@@ -144,7 +144,7 @@ class TagViewset(BaseViewSet):
 class ProductViewset(BaseViewSet):
     """Вьюха продуктов"""
     pagination_class = None
-    permission_classes = [local_rights.ReadOnly, local_rights.IsAdmin]
+    permission_classes = [local_rights.ReadOnly | local_rights.IsAdmin]
     queryset = Product.objects.all().order_by('id')
     serializer_class = serializers.ProductSerializer
     filter_backends = (dfilters.DjangoFilterBackend, )
@@ -179,7 +179,7 @@ class RecipeViewset(BaseViewSet):
     """Вьюха рецептов"""
     serializer_class = serializers.RecipeSerializer
     permission_classes = [
-        local_rights.ReadAnyPostAuthChangeOwner, local_rights.IsAdmin
+        local_rights.ReadAnyPostAuthChangeOwner | local_rights.IsAdmin
     ]
 
     def create(self, request, *args, **kwargs):
@@ -221,7 +221,7 @@ class RecipeViewset(BaseViewSet):
 
 
 class UserSetPasswordViewset(views.APIView):
-    permission_classes = [permissions.IsAuthenticated, local_rights.IsAdmin]
+    permission_classes = [permissions.IsAuthenticated | local_rights.IsAdmin]
 
     def post(self, request):
         cur_user = request.user
@@ -246,7 +246,7 @@ class UserSetPasswordViewset(views.APIView):
 
 
 class AddToFavoriteView(views.APIView):
-    permission_classes = [permissions.IsAuthenticated, local_rights.IsAdmin]
+    permission_classes = [permissions.IsAuthenticated | local_rights.IsAdmin]
 
     def post(self, request, recipe_id):
         cur_user = self.request.user
@@ -280,7 +280,7 @@ class AddToFavoriteView(views.APIView):
 
 
 class SubscribeListView(mixins.ListModelMixin, viewsets.GenericViewSet):
-    permission_classes = [permissions.IsAuthenticated, local_rights.IsAdmin]
+    permission_classes = [permissions.IsAuthenticated | local_rights.IsAdmin]
     pagination_class = pagination.DefaultPagination
     serializer_class = serializers.UserSupscriptionsSerializer
 
@@ -291,7 +291,7 @@ class SubscribeListView(mixins.ListModelMixin, viewsets.GenericViewSet):
 
 
 class SubscribeView(viewsets.ViewSet):
-    permission_classes = [permissions.IsAuthenticated, local_rights.IsAdmin]
+    permission_classes = [permissions.IsAuthenticated | local_rights.IsAdmin]
 
     def post(self, request, *args, **kwargs):
         author = get_object_or_404(user, pk=self.kwargs['user_id'])
@@ -330,7 +330,7 @@ class SubscribeView(viewsets.ViewSet):
 
 
 class AddToShoppingCartView(viewsets.ViewSet):
-    permission_classes = [permissions.IsAuthenticated, local_rights.IsAdmin]
+    permission_classes = [permissions.IsAuthenticated | local_rights.IsAdmin]
 
     def post(self, request, recipe_id):
         recipe = get_object_or_404(Recipe, pk=recipe_id)
@@ -373,7 +373,7 @@ class AddToShoppingCartView(viewsets.ViewSet):
 
 
 class ExportShoppingCart(viewsets.ViewSet):
-    permission_classes = [permissions.IsAuthenticated, local_rights.IsAdmin]
+    permission_classes = [permissions.IsAuthenticated | local_rights.IsAdmin]
 
     def get(self, request):
         data = list(request.user.shopping_cart.recipes.all().values(
