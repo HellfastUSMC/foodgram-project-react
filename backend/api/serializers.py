@@ -127,7 +127,7 @@ class RecipeSerializer(serializers.ModelSerializer):
                 )
             for ingredient in request.data['ingredients']:
                 msg = {}
-                if not Ingredient.objects.filter(pk=ingredient['id']).exists():
+                if not Product.objects.filter(pk=ingredient['id']).exists():
                     msg['ingredients'] = (
                         f'Объект не найден, проверьте'
                         f'значение поля id - {ingredient["id"]}'
