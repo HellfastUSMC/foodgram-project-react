@@ -132,10 +132,7 @@ class RecipeSerializer(serializers.ModelSerializer):
                         f'Объект не найден, проверьте'
                         f'значение поля id - {ingredient["id"]}'
                     )
-                if 0 >= ingredient['amount'] or not isinstance(
-                    ingredient['amount'],
-                    int
-                ):
+                if 0 >= int(ingredient['amount']):
                     msg['amount'] = (
                         f'Проверьте значение поля amount '
                         f'- {ingredient["amount"]}'

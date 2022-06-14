@@ -204,12 +204,12 @@ class RecipeViewset(BaseViewSet):
     def get_queryset(self):
         queryset = Recipe.objects.all().order_by('id')
         if self.request.GET.get('is_favorited') == '1':
-            # queryset = queryset.filter(favorites__id=self.request.user.id)
-            queryset = self.request.user.favorites.all()
+            queryset = queryset.filter(favorites__id=self.request.user.id)
+            # queryset = self.request.user.favorites.all()
         if self.request.GET.getlist('tags'):
             queryset = queryset.filter(
                 tags__slug__in=self.request.GET.getlist('tags')
-            )
+            ).distinct()
         if self.request.GET.get('author'):
             queryset = queryset.filter(
                 author__id=self.request.GET.get('author')
@@ -381,10 +381,10 @@ class ExportShoppingCart(viewsets.ViewSet):
             'ingredients__product__name',
             'ingredients__product__measurement_unit'
         ).annotate(amount=Sum('ingredients__amount')))
-        sorted_data = sorted(
-            data,
-            key=lambda d: d['ingredients__product__name']
-        )
+        # sorted_data = sorted(
+        #     data,
+        #     key=lambda d: d['ingredients__product__name']
+        # )
         with open(
             f'{request.user.username}_shopping_cart.txt',
             'w',
@@ -394,7 +394,7 @@ class ExportShoppingCart(viewsets.ViewSet):
                 f'Список покупок для {request.user.username}:'.encode('utf8')
             )
             file.write('\n')
-            for product in sorted_data:
+            for product in data:
                 file.write(
                     f"{product['ingredients__product__name']}"
                     f" ({product['ingredients__product__measurement_unit']})"
