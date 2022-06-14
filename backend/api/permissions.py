@@ -34,3 +34,33 @@ class IsAuthenticatedAndOwner(BasePermission):
 
     def has_object_permission(self, request, view, obj):
         return request.method in SAFE_METHODS or obj.author == request.user
+
+
+#----------------------------NEW PERMISSIONS
+
+
+class AllowPostOrReadOnly(BasePermission):
+
+    def has_permission(self, request, view):
+        return request.method in SAFE_METHODS
+
+    def has_object_permission(self, request, view, obj):
+        return request.method in SAFE_METHODS or request.method == 'POST'
+
+
+class ReadOnly(BasePermission):
+
+    def has_permission(self, request, view):
+        return request.method in SAFE_METHODS
+
+    def has_object_permission(self, request, view, obj):
+        return request.method in SAFE_METHODS
+
+
+class ReadAnyPostAuthChangeOwner(BasePermission):
+
+    def has_permission(self, request, view):
+        return request.method in SAFE_METHODS
+
+    def has_object_permission(self, request, view, obj):
+        return request.method in SAFE_METHODS or request.user.is_authenticated and request.method == 'POST' or request.user == obj.author

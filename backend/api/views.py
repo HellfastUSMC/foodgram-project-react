@@ -29,7 +29,7 @@ def check_fields(request, fields):
 
 
 class TokenLogin(viewsets.ViewSet):
-    permission_classes = [local_rights.IsOwnerPostOrReadOnly]
+    permission_classes = [permissions.AllowAny, ]
 
     def post(self, request, *args, **kwargs):
         fields = ['email', 'password']
@@ -74,7 +74,7 @@ class BaseViewSet(viewsets.ModelViewSet):
 
 class UserViewset(BaseViewSet):
     """Вьюха пользователей"""
-    permission_classes = [local_rights.IsOwnerPostOrReadOnly]
+    permission_classes = [local_rights.AllowPostOrReadOnly, ]
     queryset = user.objects.all().order_by('id')
     serializer_class = serializers.UserSerializer
 
@@ -86,10 +86,28 @@ class UserViewset(BaseViewSet):
         print(obj)
         return obj
 
+    def update(self, request, *args, **kwargs):
+        return Response(
+            {'detail': 'Метод запрещен'},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED
+        )
+
+    def destroy(self, request, *args, **kwargs):
+        return Response(
+            {'detail': 'Метод запрещен'},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED
+        )
+
+    def partial_update(self, request, *args, **kwargs):
+        return Response(
+            {'detail': 'Метод запрещен'},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED
+        )
+
 
 class TagViewset(BaseViewSet):
     """Вьюха тэгов"""
-    permission_classes = [permissions.AllowAny, ]
+    permission_classes = [local_rights.ReadOnly, ]
     pagination_class = None
     queryset = Tag.objects.all().order_by('id')
     serializer_class = serializers.TagSerializer
@@ -121,9 +139,8 @@ class TagViewset(BaseViewSet):
 
 class ProductViewset(BaseViewSet):
     """Вьюха продуктов"""
-    # permission_classes = [permissions.IsAuthenticated, ]
     pagination_class = None
-    permission_classes = [permissions.AllowAny, ]
+    permission_classes = [local_rights.ReadOnly, ]
     queryset = Product.objects.all().order_by('id')
     serializer_class = serializers.ProductSerializer
     filter_backends = (dfilters.DjangoFilterBackend, )
@@ -157,7 +174,7 @@ class ProductViewset(BaseViewSet):
 class RecipeViewset(BaseViewSet):
     """Вьюха рецептов"""
     serializer_class = serializers.RecipeSerializer
-    permission_classes = [local_rights.IsOwnerOrReadOnly, ]
+    permission_classes = [local_rights.ReadAnyPostAuthChangeOwner, ]
 
     def create(self, request, *args, **kwargs):
         super().create(request, *args, **kwargs)
