@@ -38,8 +38,9 @@ jobs:
         script: |
           cd dev/foodgram-project-react/infra/
           sudo docker compose down -v
-          sudo docker rm -f $(sudo docker ps -a -q)
           sudo docker compose rm infra
+          sudo docker rm -f $(sudo docker ps -a -q)
+          sudo docker volume prune -f
           rm .env
           touch .env
           echo DB_ENGINE=${{ secrets.DB_ENGINE }} >> .env
