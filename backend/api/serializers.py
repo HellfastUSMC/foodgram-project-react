@@ -2,10 +2,9 @@ from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
-from backend.food.models import ShoppingCart
 
 from food.models import (Ingredient, Product, Recipe,
-                         Subscription, Tag)
+                         Subscription, Tag, ShoppingCart)
 
 user = get_user_model()
 
