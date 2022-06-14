@@ -22,7 +22,7 @@ jobs:
         with:
           context: backend
           push: true
-          tags: hellfast/foodgram:v1.0
+          tags: hellfast/foodgram:latest
   deploy:
     runs-on: ubuntu-latest
     needs: build_and_push_to_docker_hub
