@@ -121,6 +121,7 @@ class TagViewset(BaseViewSet):
 class ProductViewset(BaseViewSet):
     """Вьюха продуктов"""
     # permission_classes = [permissions.IsAuthenticated, ]
+    pagination_class = None
     permission_classes = [permissions.AllowAny, ]
     queryset = Product.objects.all().order_by('id')
     serializer_class = serializers.ProductSerializer
@@ -374,7 +375,7 @@ class ExportShoppingCart(viewsets.ViewSet):
                 )
                 file.write('\n')
             file.write('\n')
-            file.write('Составлено с помощью FoodGram')
+            file.write('Составлено с ❤ и FoodGram')
         file = open(f'{request.user.username}_shopping_cart.txt', 'rb')
         response = FileResponse(
             file,
