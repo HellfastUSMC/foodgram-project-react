@@ -89,6 +89,7 @@ class UserViewset(BaseViewSet):
 
 class TagViewset(BaseViewSet):
     """Вьюха тэгов"""
+    permission_classes = [permissions.AllowAny, ]
     queryset = Tag.objects.all().order_by('id')
     serializer_class = serializers.TagSerializer
 
@@ -119,7 +120,8 @@ class TagViewset(BaseViewSet):
 
 class ProductViewset(BaseViewSet):
     """Вьюха продуктов"""
-    permission_classes = [permissions.IsAuthenticated, ]
+    # permission_classes = [permissions.IsAuthenticated, ]
+    permission_classes = [permissions.AllowAny, ]
     queryset = Product.objects.all().order_by('id')
     serializer_class = serializers.ProductSerializer
     filter_backends = (dfilters.DjangoFilterBackend, )

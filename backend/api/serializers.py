@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
+from backend.food.models import ShoppingCart
 
 from food.models import (Ingredient, Product, Recipe,
                          Subscription, Tag)
@@ -28,6 +29,7 @@ class UserSerializer(serializers.ModelSerializer):
         if password is not None:
             instance.set_password(password)
         instance.save()
+        ShoppingCart.objects.create(customer=instance)
         return instance
 
     def to_representation(self, instance):
