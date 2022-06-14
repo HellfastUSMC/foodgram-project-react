@@ -392,15 +392,15 @@ class ExportShoppingCart(viewsets.ViewSet):
             file.write(
                 f'Список покупок для {request.user.username}:'.encode('utf8')
             )
-            file.write('\n')
+            file.write('\n'.encode('utf8'))
             for product in data:
                 file.write(
                     f"{product['ingredients__product__name']}"
                     f" ({product['ingredients__product__measurement_unit']})"
                     f" - {product['amount']}".encode('utf8')
                 )
-                file.write('\n')
-            file.write('\n')
+                file.write('\n'.encode('utf8'))
+            file.write('\n'.encode('utf8'))
             file.write('Составлено с ❤ и FoodGram'.encode('utf8'))
         file = open(f'{request.user.username}_shopping_cart.txt', 'rb')
         response = FileResponse(
