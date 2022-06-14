@@ -114,9 +114,9 @@ class RecipeSerializer(serializers.ModelSerializer):
     def _get_post_ingredients(self, obj):
         request = self.context.get('request', None)
         if (
-            request.method == 'GET' or
-            'shopping_cart' in request.get_full_path() or
-            'view' not in self.context
+            request.method == 'GET'
+            or 'shopping_cart' in request.get_full_path()
+            or 'view' not in self.context
         ):
             return IngredientSerializer(obj.ingredients.all(), many=True).data
         if request.method == 'POST':
@@ -152,17 +152,14 @@ class RecipeSerializer(serializers.ModelSerializer):
                 obj.ingredients.clear()
                 for ingredient in request.data['ingredients']:
                     msg = {}
-                    if not Ingredient.objects.filter(
+                    if not Product.objects.filter(
                         pk=ingredient['id']
                     ).exists():
                         msg['ingredients'] = (
                             f'Объект не найден, проверьте'
                             f'значение поля id - {ingredient["id"]}'
                         )
-                    if 0 >= int(ingredient['amount']) or not isinstance(
-                        ingredient['amount'],
-                        int
-                    ):
+                    if 0 >= int(ingredient['amount']):
                         msg['amount'] = (
                             f'Проверьте значение поля amount '
                             f'- {ingredient["amount"]}'

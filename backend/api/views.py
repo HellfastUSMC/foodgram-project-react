@@ -189,7 +189,7 @@ class RecipeViewset(BaseViewSet):
             serializers.RecipeSerializer(
                 self.request.user.recipes.last(),
                 context={'request': request}).data
-            )
+        )
 
     def destroy(self, request, *args, **kwargs):
         instance = get_object_or_404(Recipe, pk=self.kwargs['pk'])
