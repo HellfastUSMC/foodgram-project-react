@@ -11,7 +11,6 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 
 import os
-from datetime import timedelta
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -152,18 +151,18 @@ REST_FRAMEWORK = {
 #     },
 # }
 
-SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=10),
-    'ROTATE_REFRESH_TOKENS': True,
-    'AUTH_HEADER_TYPES': ('Bearer',),
-    'BLACKLIST_AFTER_ROTATION': True,
-}
+# SIMPLE_JWT = {
+#     'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+#     'REFRESH_TOKEN_LIFETIME': timedelta(days=10),
+#     'ROTATE_REFRESH_TOKENS': True,
+#     'AUTH_HEADER_TYPES': ('Bearer',),
+#     'BLACKLIST_AFTER_ROTATION': True,
+# }
 
 # Internationalization
 # https://docs.djangoproject.com/en/2.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'ru-ru'
 
 TIME_ZONE = 'UTC'
 
@@ -179,9 +178,9 @@ USE_TZ = True
 
 STATIC_URL = '/staticfiles/'
 
-#STATICFILES_DIRS = (os.path.join(BASE_DIR, 'static/'),)
+# STATICFILES_DIRS = (os.path.join(BASE_DIR, 'static/'),)
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles/')
 
-#MEDIAFILES_DIRS = (os.path.join(BASE_DIR, 'media/'),)
+# MEDIAFILES_DIRS = (os.path.join(BASE_DIR, 'media/'),)
 MEDIA_URL = '/mediafiles/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'mediafiles/')

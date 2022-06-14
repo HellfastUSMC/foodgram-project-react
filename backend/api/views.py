@@ -68,13 +68,17 @@ class TokenLogout(viewsets.ViewSet):
 
 class BaseViewSet(viewsets.ModelViewSet):
     """Базовая вьюха."""
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [
+        permissions.IsAuthenticatedOrReadOnly, local_rights.IsAdmin
+    ]
     pagination_class = pagination.DefaultPagination
 
 
 class UserViewset(BaseViewSet):
     """Вьюха пользователей"""
-    permission_classes = [local_rights.AllowPostOrReadOnly, ]
+    permission_classes = [
+        local_rights.AllowPostOrReadOnly, local_rights.IsAdmin
+    ]
     queryset = user.objects.all().order_by('id')
     serializer_class = serializers.UserSerializer
 
@@ -107,7 +111,7 @@ class UserViewset(BaseViewSet):
 
 class TagViewset(BaseViewSet):
     """Вьюха тэгов"""
-    permission_classes = [local_rights.ReadOnly, ]
+    permission_classes = [local_rights.ReadOnly, local_rights.IsAdmin]
     pagination_class = None
     queryset = Tag.objects.all().order_by('id')
     serializer_class = serializers.TagSerializer
@@ -140,7 +144,7 @@ class TagViewset(BaseViewSet):
 class ProductViewset(BaseViewSet):
     """Вьюха продуктов"""
     pagination_class = None
-    permission_classes = [local_rights.ReadOnly, ]
+    permission_classes = [local_rights.ReadOnly, local_rights.IsAdmin]
     queryset = Product.objects.all().order_by('id')
     serializer_class = serializers.ProductSerializer
     filter_backends = (dfilters.DjangoFilterBackend, )
@@ -174,7 +178,9 @@ class ProductViewset(BaseViewSet):
 class RecipeViewset(BaseViewSet):
     """Вьюха рецептов"""
     serializer_class = serializers.RecipeSerializer
-    permission_classes = [local_rights.ReadAnyPostAuthChangeOwner, ]
+    permission_classes = [
+        local_rights.ReadAnyPostAuthChangeOwner, local_rights.IsAdmin
+    ]
 
     def create(self, request, *args, **kwargs):
         super().create(request, *args, **kwargs)
@@ -215,12 +221,12 @@ class RecipeViewset(BaseViewSet):
 
 
 class UserSetPasswordViewset(views.APIView):
-    permission_classes = [permissions.IsAuthenticated, ]
+    permission_classes = [permissions.IsAuthenticated, local_rights.IsAdmin]
 
     def post(self, request):
         cur_user = request.user
         response_message = {}
-        fields = ['old_password', 'new_password']
+        fields = ['current_password', 'new_password']
         for field in fields:
             if field not in request.data or not request.data[field]:
                 response_message[field] = f'Проверьте поле {field}'
@@ -229,7 +235,7 @@ class UserSetPasswordViewset(views.APIView):
                 response_message,
                 status=status.HTTP_400_BAD_REQUEST
             )
-        if not cur_user.check_password(request.data['old_password']):
+        if not cur_user.check_password(request.data['current_password']):
             return Response(
                 {'detail': 'Неверный пароль'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -240,7 +246,7 @@ class UserSetPasswordViewset(views.APIView):
 
 
 class AddToFavoriteView(views.APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, local_rights.IsAdmin]
 
     def post(self, request, recipe_id):
         cur_user = self.request.user
@@ -274,7 +280,7 @@ class AddToFavoriteView(views.APIView):
 
 
 class SubscribeListView(mixins.ListModelMixin, viewsets.GenericViewSet):
-    permission_classes = [permissions.IsAuthenticated, ]
+    permission_classes = [permissions.IsAuthenticated, local_rights.IsAdmin]
     pagination_class = pagination.DefaultPagination
     serializer_class = serializers.UserSupscriptionsSerializer
 
@@ -285,7 +291,7 @@ class SubscribeListView(mixins.ListModelMixin, viewsets.GenericViewSet):
 
 
 class SubscribeView(viewsets.ViewSet):
-    permission_classes = [permissions.IsAuthenticated, ]
+    permission_classes = [permissions.IsAuthenticated, local_rights.IsAdmin]
 
     def post(self, request, *args, **kwargs):
         author = get_object_or_404(user, pk=self.kwargs['user_id'])
@@ -324,7 +330,7 @@ class SubscribeView(viewsets.ViewSet):
 
 
 class AddToShoppingCartView(viewsets.ViewSet):
-    permission_classes = [permissions.IsAuthenticated, ]
+    permission_classes = [permissions.IsAuthenticated, local_rights.IsAdmin]
 
     def post(self, request, recipe_id):
         recipe = get_object_or_404(Recipe, pk=recipe_id)
@@ -367,7 +373,7 @@ class AddToShoppingCartView(viewsets.ViewSet):
 
 
 class ExportShoppingCart(viewsets.ViewSet):
-    permission_classes = [permissions.IsAuthenticated, ]
+    permission_classes = [permissions.IsAuthenticated, local_rights.IsAdmin]
 
     def get(self, request):
         data = list(request.user.shopping_cart.recipes.all().values(
@@ -383,24 +389,28 @@ class ExportShoppingCart(viewsets.ViewSet):
             'w',
             encoding='utf-8'
         ) as file:
-            file.write(f'Список покупок для {request.user.username}:')
+            file.write(
+                f'Список покупок для {request.user.username}:'.encode('utf8')
+            )
             file.write('\n')
             for product in sorted_data:
                 file.write(
                     f"{product['ingredients__product__name']}"
                     f" ({product['ingredients__product__measurement_unit']})"
-                    f" - {product['amount']}"
+                    f" - {product['amount']}".encode('utf8')
                 )
                 file.write('\n')
             file.write('\n')
-            file.write('Составлено с ❤ и FoodGram')
+            file.write('Составлено с ❤ и FoodGram'.encode('utf8'))
         file = open(f'{request.user.username}_shopping_cart.txt', 'rb')
         response = FileResponse(
             file,
             filename=f'{request.user.username}_shopping_cart.txt'
         )
         response['Content-Disposition'] = (
-            'attachment; filename={0}'.format(f'{request.user.username}_shopping_cart.txt')
+            'attachment; filename={0}'.format(
+                f'{request.user.username}_shopping_cart.txt'
+            )
         )
         return response
 

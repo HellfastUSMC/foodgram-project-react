@@ -202,7 +202,9 @@ class RecipeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
         exclude = ['favorites']
-        extra_kwargs = {'ingredients': {'required': True,'allow_blank': False}}
+        extra_kwargs = {
+            'ingredients': {'required': True, 'allow_blank': False}
+        }
 
 
 class UserSupscriptionsSerializer(serializers.ModelSerializer):
