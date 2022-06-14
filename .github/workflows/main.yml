@@ -37,7 +37,7 @@ jobs:
         passphrase: ${{ secrets.PASSPHRASE }}
         script: |
           cd dev/foodgram-project-react/infra/
-          sudo docker compose down
+          sudo docker compose stop
           sudo docker container rm infra-web-1
           sudo docker image rm hellfast/foodgram
           rm .env
@@ -48,7 +48,7 @@ jobs:
           echo POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} >> .env
           echo DB_HOST=${{ secrets.DB_HOST }} >> .env
           echo DB_PORT=${{ secrets.DB_PORT }} >> .env
-          sudo docker compose up -d --build
+          sudo docker compose up -d
           sudo docker compose exec web python manage.py makemigrations
           sudo docker compose exec web python manage.py migrate
           sudo docker compose exec web python manage.py collectstatic --noinput

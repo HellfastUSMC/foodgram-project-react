@@ -90,6 +90,7 @@ class UserViewset(BaseViewSet):
 class TagViewset(BaseViewSet):
     """Вьюха тэгов"""
     permission_classes = [permissions.AllowAny, ]
+    pagination_class = None
     queryset = Tag.objects.all().order_by('id')
     serializer_class = serializers.TagSerializer
 
