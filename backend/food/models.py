@@ -41,10 +41,10 @@ class Recipe(models.Model):
         related_name='recipes',
         verbose_name='Автор'
     )
-    published = models.DateTimeField('Дата публикации', auto_now_add=True)
+    #published = models.DateTimeField('Дата публикации', auto_now_add=True)
     name = models.CharField('Название', max_length=200)
     image = models.ImageField('Обложка', upload_to='images')
-    text = models.TextField('Описание')
+    text = models.TextField('Описание', max_length=1000)
     ingredients = models.ManyToManyField(
         Product,
         through='Ingredient',
@@ -71,7 +71,7 @@ class Recipe(models.Model):
         return f'{self.name} {self.author.username}'
 
     class Meta:
-        ordering = ['-published']
+        #ordering = ['-published']
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
 
