@@ -69,7 +69,9 @@ class IngredientSerializer(serializers.ModelSerializer):
     """Сериализатор названий продуктов."""
     id = serializers.ReadOnlyField(source='product.id') # New field 4 test
     name = serializers.ReadOnlyField(source='product.name')
-    measurement_unit = serializers.ReadOnlyField(source='product.measurement_unit')
+    measurement_unit = serializers.ReadOnlyField(
+        source='product.measurement_unit'
+    )
 
     class Meta:
         model = Ingredient

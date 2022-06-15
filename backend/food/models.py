@@ -14,7 +14,7 @@ class Tag(models.Model):
         validators=[MinLengthValidator(7), MaxLengthValidator(7)],
         unique=True
     )
-    slug = models.SlugField('Slug', unique=True)
+    slug = models.SlugField('Slug', unique=True, max_length=30)
 
     def __str__(self):
         return f'{self.name} {self.color}'
