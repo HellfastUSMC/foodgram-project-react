@@ -1,3 +1,4 @@
+import codecs
 
 from django.contrib.auth import get_user_model
 from django.db.models import Sum
@@ -182,14 +183,14 @@ class RecipeViewset(BaseViewSet):
         local_rights.ReadAnyPostAuthChangeOwner | local_rights.IsAdmin
     ]
 
-    def create(self, request, *args, **kwargs):
-        super().create(request, *args, **kwargs)
-        request = self.request
-        return Response(
-            serializers.RecipeSerializer(
-                self.request.user.recipes.last(),
-                context={'request': request}).data
-        )
+    # def create(self, request, *args, **kwargs):
+    #     #super().create(request, *args, **kwargs)
+    #     request = self.request
+    #     return Response(
+    #         serializers.RecipeSerializer(
+    #             self.request.user.recipes.last(),
+    #             context={'request': request}).data
+    #     )
 
     def destroy(self, request, *args, **kwargs):
         instance = get_object_or_404(Recipe, pk=self.kwargs['pk'])
@@ -202,10 +203,10 @@ class RecipeViewset(BaseViewSet):
         serializer.save(author=self.request.user)
 
     def get_queryset(self):
-        queryset = Recipe.objects.all().order_by('id')
+        queryset = Recipe.objects.all()
         if self.request.GET.get('is_favorited') == '1':
-            queryset = queryset.filter(favorites__id=self.request.user.id)
-            # queryset = self.request.user.favorites.all()
+            # queryset = queryset.filter(favorites__id=self.request.user.id)
+            queryset = self.request.user.favorites.all()
         if self.request.GET.getlist('tags'):
             queryset = queryset.filter(
                 tags__slug__in=self.request.GET.getlist('tags')
@@ -218,7 +219,7 @@ class RecipeViewset(BaseViewSet):
             queryset = queryset.filter(
                 shopping_carts=self.request.user.shopping_cart
             )
-        return queryset.order_by('id')
+        return queryset.order_by('published')
 
 
 class UserSetPasswordViewset(views.APIView):
@@ -274,10 +275,7 @@ class AddToFavoriteView(views.APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
         recipe_obj.favorites.remove(cur_user)
-        return Response(
-            {'detail': 'Объект удален из избранного!'},
-            status=status.HTTP_204_NO_CONTENT
-        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class SubscribeListView(mixins.ListModelMixin, viewsets.GenericViewSet):
@@ -367,10 +365,7 @@ class AddToShoppingCartView(viewsets.ViewSet):
             )
 
         cart.recipes.remove(recipe)
-        return Response(
-            {'detail': 'Рецепт успешно удален из корзины'},
-            status=status.HTTP_204_NO_CONTENT
-        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class ExportShoppingCart(viewsets.ViewSet):
@@ -381,10 +376,6 @@ class ExportShoppingCart(viewsets.ViewSet):
             'ingredients__product__name',
             'ingredients__product__measurement_unit'
         ).annotate(amount=Sum('ingredients__amount')))
-        # sorted_data = sorted(
-        #     data,
-        #     key=lambda d: d['ingredients__product__name']
-        # )
         with open(
             f'{request.user.username}_shopping_cart.txt',
             'wb'
@@ -402,11 +393,17 @@ class ExportShoppingCart(viewsets.ViewSet):
                 file.write('\n'.encode('utf8'))
             file.write('\n'.encode('utf8'))
             file.write('Составлено с ❤ и FoodGram'.encode('utf8'))
-        file = open(f'{request.user.username}_shopping_cart.txt', 'rb')
+        # file = open(f'{request.user.username}_shopping_cart.txt', 'rb')
+        file = codecs.open(
+            f'{request.user.username}_shopping_cart.txt',
+            'w',
+            'utf-8'
+        )
         response = FileResponse(
             file,
             filename=f'{request.user.username}_shopping_cart.txt'
         )
+        file.close()
         response['Content-Disposition'] = (
             'attachment; filename={0}'.format(
                 f'{request.user.username}_shopping_cart.txt'

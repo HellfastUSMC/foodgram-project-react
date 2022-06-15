@@ -65,8 +65,9 @@ class TagSerializer(serializers.ModelSerializer):
 
 class IngredientSerializer(serializers.ModelSerializer):
     """Сериализатор названий продуктов."""
-    name = serializers.CharField(source='product.name')
-    measurement_unit = serializers.CharField(source='product.measurement_unit')
+    id = serializers.ReadOnlyField(source='product.id') # New field 4 test
+    name = serializers.ReadOnlyField(source='product.name')
+    measurement_unit = serializers.ReadOnlyField(source='product.measurement_unit')
 
     class Meta:
         model = Ingredient
@@ -80,9 +81,10 @@ class RecipeSerializer(serializers.ModelSerializer):
         many=True
     )
     author = UserSerializer(read_only=True)
-    ingredients = serializers.SerializerMethodField(
-        '_get_post_ingredients'
-    )
+    # ingredients = serializers.SerializerMethodField(
+    #     '_get_post_ingredients'
+    # )
+    ingredients = IngredientSerializer(many=True)
     is_favorited = serializers.SerializerMethodField(
         '_get_favorited', read_only=True
     )
@@ -102,6 +104,15 @@ class RecipeSerializer(serializers.ModelSerializer):
             for field_name in existing - allowed:
                 self.fields.pop(field_name)
 
+    def create(self, validated_data):
+        ingredients = validated_data.pop('ingredients')
+        print(validated_data['author'], ingredients)
+        obj = Recipe.objects.create(**validated_data)
+        for ingredient in ingredients:
+            cur_ing = Ingredient.objects.create(product_id=int(ingredient['id']), amount=int(ingredient['amount']))
+            obj.ingredients.add(cur_ing)
+        return obj
+
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         if 'tags' in self.fields:
@@ -111,73 +122,67 @@ class RecipeSerializer(serializers.ModelSerializer):
             ).data
         return representation
 
-    def _get_post_ingredients(self, obj):
-        request = self.context.get('request', None)
-        if (
-            request.method == 'GET'
-            or 'shopping_cart' in request.get_full_path()
-            or 'view' not in self.context
-        ):
-            return IngredientSerializer(obj.ingredients.all(), many=True).data
-        if request.method == 'POST':
-            if 'ingredients' not in request.data:
-                raise serializers.ValidationError(
-                    {'ingredients': 'Поле ingredients обязательное'},
-                    code=400
-                )
-            for ingredient in request.data['ingredients']:
-                msg = {}
-                if not Product.objects.filter(pk=ingredient['id']).exists():
-                    msg['ingredients'] = (
-                        f'Объект не найден, проверьте'
-                        f'значение поля id - {ingredient["id"]}'
-                    )
-                if 0 >= int(ingredient['amount']):
-                    msg['amount'] = (
-                        f'Проверьте значение поля amount '
-                        f'- {ingredient["amount"]}'
-                    )
-                if msg:
-                    raise serializers.ValidationError(msg, code=400)
-                instance = Ingredient.objects.create(
-                    product=get_object_or_404(Product, pk=ingredient['id']),
-                    amount=ingredient['amount']
-                )
-                obj.ingredients.add(instance)
-            return IngredientSerializer(obj.ingredients.all(), many=True).data
-        if request.method == 'PATCH':
-            if 'ingredients' in request.data:
-                for old_ingredient in obj.ingredients.all():
-                    old_ingredient.delete()
-                obj.ingredients.clear()
-                for ingredient in request.data['ingredients']:
-                    msg = {}
-                    if not Product.objects.filter(
-                        pk=ingredient['id']
-                    ).exists():
-                        msg['ingredients'] = (
-                            f'Объект не найден, проверьте'
-                            f'значение поля id - {ingredient["id"]}'
-                        )
-                    if 0 >= int(ingredient['amount']):
-                        msg['amount'] = (
-                            f'Проверьте значение поля amount '
-                            f'- {ingredient["amount"]}'
-                        )
-                    if msg:
-                        raise serializers.ValidationError(msg, code=400)
-                    instance = Ingredient.objects.create(
-                        product=get_object_or_404(
-                            Product,
-                            pk=ingredient['id']
-                        ),
-                        amount=ingredient['amount']
-                    )
-                    obj.ingredients.add(instance)
-                return IngredientSerializer(
-                    obj.ingredients.all(),
-                    many=True
-                ).data
+    def to_internal_value(self, data):
+        print(data)
+        return data
+
+
+    # def _get_post_ingredients(self, obj):
+    #     request = self.context.get('request', None)
+
+    #     def validate_request(ingredient_id, ingredient_amount):
+    #         msg = {}
+    #         if not Product.objects.filter(pk=int(ingredient_id)).exists():
+    #             msg['ingredients'] = (
+    #                 f'Объект не найден, проверьте'
+    #                 f'значение поля id - {ingredient_id}'
+    #             )
+    #         if 0 >= int(ingredient_amount):
+    #             msg['amount'] = (
+    #                 f'Проверьте значение поля amount '
+    #                 f'- {ingredient_amount}'
+    #             )
+    #         return msg
+
+    #     if (
+    #         request.method == 'GET'
+    #         or 'shopping_cart' in request.get_full_path()
+    #         or 'view' not in self.context
+    #     ):
+    #         return IngredientSerializer(obj.ingredients.all(), many=True).data
+
+        # if request.method == 'POST':
+        #     if 'ingredients' not in request.data:
+        #         raise serializers.ValidationError(
+        #             {'ingredients': 'Поле ingredients обязательное'},
+        #             code=400
+        #         )
+        #     for ingredient in request.data['ingredients']:
+        #         msg = validate_request(ingredient['id'], ingredient['amount'])
+        #         if msg:
+        #             raise serializers.ValidationError(msg, code=400)
+        #         instance = Ingredient.objects.create(
+        #             product=get_object_or_404(Product, pk=ingredient['id']),
+        #             amount=ingredient['amount']
+        #         )
+        #         obj.ingredients.add(instance)
+        #     return IngredientSerializer(obj.ingredients.all(), many=True).data
+
+        # if request.method == 'PATCH' and 'ingredients' in request.data:
+        #     #obj.ingredients.clear()
+        #     for ingredient in request.data['ingredients']:
+        #         msg = validate_request(ingredient['id'], ingredient['amount'])
+        #         if msg:
+        #             raise serializers.ValidationError(msg, code=400)
+        #         instance, exists = Ingredient.objects.get_or_create(
+        #             product__id=int(ingredient['id']),
+        #             amount=int(ingredient['amount'])
+        #         )
+        #         obj.ingredients.add(instance)
+        #     return IngredientSerializer(
+        #         obj.ingredients.all(),
+        #         many=True
+        #     ).data
 
     def _get_shopping_cart(self, obj):
         request = self.context.get('request', None)
@@ -195,10 +200,10 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Recipe
-        exclude = ['favorites']
-        extra_kwargs = {
-            'ingredients': {'required': True, 'allow_blank': False}
-        }
+        exclude = ['favorites', 'published']
+        # extra_kwargs = {
+        #     'ingredients': {'required': True, 'allow_blank': False}
+        # }
 
 
 class UserSupscriptionsSerializer(serializers.ModelSerializer):

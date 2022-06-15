@@ -35,33 +35,18 @@ class Product(models.Model):
         return self.name
 
 
-class Ingredient(models.Model):
-    product = models.ForeignKey(
-        Product,
-        verbose_name='Продукт',
-        related_name='ingredients',
-        on_delete=models.CASCADE
-    )
-    amount = models.IntegerField(
-        'Количество',
-        validators=[MinValueValidator(1)]
-    )
-
-    def __str__(self):
-        return (f'{self.product.name} {self.amount}'
-                f'{self.product.measurement_unit}')
-
-
 class Recipe(models.Model):
     author = models.ForeignKey(
         user, on_delete=models.CASCADE,
         related_name='recipes',
         verbose_name='Автор'
     )
+    published = models.DateTimeField('Дата публикации', auto_now_add=True)
     name = models.CharField('Название', max_length=200)
     image = models.ImageField('Обложка')
     text = models.TextField('Описание')
-    ingredients = models.ManyToManyField(Ingredient, related_name='recipes')
+    # ingredients = models.ManyToManyField(Ingredient, related_name='recipes')
+    ingredients = models.ManyToManyField(Product, through='Ingredient', related_name='recipes')
     tags = models.ManyToManyField(Tag, related_name='recipes')
     cooking_time = models.IntegerField(
         'Время приготовления',
@@ -76,6 +61,29 @@ class Recipe(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class Ingredient(models.Model):
+    product = models.ForeignKey(
+        Product,
+        verbose_name='Продукт',
+        #related_name='ingredients',
+        on_delete=models.CASCADE
+    )
+    recipe = models.ForeignKey(
+        Recipe,
+        verbose_name='Продукт',
+        #related_name='ingredients',
+        on_delete=models.CASCADE
+    )
+    amount = models.IntegerField(
+        'Количество',
+        validators=[MinValueValidator(1)]
+    )
+
+    def __str__(self):
+        return (f'{self.product.name} {self.amount}'
+                f'{self.product.measurement_unit}')
 
 
 class Subscription(models.Model):
