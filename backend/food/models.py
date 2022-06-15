@@ -43,7 +43,7 @@ class Recipe(models.Model):
     )
     published = models.DateTimeField('Дата публикации', auto_now_add=True)
     name = models.CharField('Название', max_length=200)
-    #image = models.ImageField('Обложка')
+    image = models.ImageField('Обложка')
     text = models.TextField('Описание', max_length=1000)
     ingredients = models.ManyToManyField(
         Product,
