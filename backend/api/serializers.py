@@ -51,6 +51,8 @@ class UserSerializer(serializers.ModelSerializer):
 
 class ProductSerializer(serializers.ModelSerializer):
     """Сериализатор названий продуктов."""
+    amount = serializers.IntegerField(source='ingridient.amount', read_only=True)
+
     class Meta:
         model = Product
         fields = '__all__'
@@ -71,27 +73,21 @@ class IngredientSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Ingredient
-        exclude = ['product']
+        exclude = ['product', 'recipe']
 
 
 class RecipeSerializer(serializers.ModelSerializer):
     """Сериализатор названий продуктов."""
-    tags = serializers.PrimaryKeyRelatedField(
-        queryset=Tag.objects.all(),
-        many=True
-    )
+    tags = TagSerializer(many=True, read_only=True)
     author = UserSerializer(read_only=True)
-    # ingredients = serializers.SerializerMethodField(
-    #     '_get_post_ingredients'
-    # )
-    ingredients = IngredientSerializer(many=True)
+    ingredients = IngredientSerializer(source='ingredient_set', many=True, read_only=True)
     is_favorited = serializers.SerializerMethodField(
         '_get_favorited', read_only=True
     )
     is_in_shopping_cart = serializers.SerializerMethodField(
         '_get_shopping_cart', read_only=True
     )
-    image = Base64ImageField()
+    image = Base64ImageField(represent_in_base64=False)
 
     def __init__(self, *args, **kwargs):
         fields = kwargs.pop('fields', None)
@@ -104,13 +100,33 @@ class RecipeSerializer(serializers.ModelSerializer):
             for field_name in existing - allowed:
                 self.fields.pop(field_name)
 
+    def _create_ingredients(self, obj, ingredients):
+        saved_args = locals()
+        print(saved_args)
+        for ingredient in ingredients:
+            Ingredient.objects.create(
+                product_id=int(ingredient['id']),
+                amount=int(ingredient['amount']),
+                recipe_id=obj.id
+            )
+
     def create(self, validated_data):
         ingredients = validated_data.pop('ingredients')
-        print(validated_data['author'], ingredients)
+        tags = validated_data.pop('tags')
+        tags_objs = Tag.objects.filter(id__in=tags)
         obj = Recipe.objects.create(**validated_data)
-        for ingredient in ingredients:
-            cur_ing = Ingredient.objects.create(product_id=int(ingredient['id']), amount=int(ingredient['amount']))
-            obj.ingredients.add(cur_ing)
+        self._create_ingredients(obj, ingredients)
+        obj.tags.set(tags_objs)
+        return obj
+
+    def update(self, instance, validated_data):
+        ingredients = validated_data.pop('ingredients')
+        tags = validated_data.pop('tags')
+        tags_objs = Tag.objects.filter(id__in=tags)
+        obj = Recipe(**validated_data)
+        obj.save()
+        self._create_ingredients(obj, ingredients)
+        obj.tags.set(tags_objs)
         return obj
 
     def to_representation(self, instance):
@@ -120,11 +136,31 @@ class RecipeSerializer(serializers.ModelSerializer):
                 instance.tags.all(),
                 many=True
             ).data
+        if 'ingredients' in self.fields:
+            representation['ingredients'] = IngredientSerializer(
+                Ingredient.objects.filter(recipe=instance),
+                many=True
+            ).data
         return representation
 
     def to_internal_value(self, data):
-        print(data)
         return data
+
+    def _get_shopping_cart(self, obj):
+        request = self.context.get('request', None)
+        if obj.shopping_carts.filter(customer_id=request.user.id).exists():
+            return True
+        return False
+
+    def _get_favorited(self, obj):
+        request = self.context.get('request', None)
+        if obj.favorites.filter(pk=request.user.id).exists():
+            return True
+        return False
+
+    class Meta:
+        model = Recipe
+        exclude = ['favorites', 'published']
 
 
     # def _get_post_ingredients(self, obj):
@@ -183,24 +219,6 @@ class RecipeSerializer(serializers.ModelSerializer):
         #         obj.ingredients.all(),
         #         many=True
         #     ).data
-
-    def _get_shopping_cart(self, obj):
-        request = self.context.get('request', None)
-        if obj.shopping_carts.filter(customer_id=request.user.id).exists():
-            return True
-        else:
-            return False
-
-    def _get_favorited(self, obj):
-        request = self.context.get('request', None)
-        if obj.favorites.filter(pk=request.user.id).exists():
-            return True
-        else:
-            return False
-
-    class Meta:
-        model = Recipe
-        exclude = ['favorites', 'published']
         # extra_kwargs = {
         #     'ingredients': {'required': True, 'allow_blank': False}
         # }

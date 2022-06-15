@@ -192,14 +192,17 @@ class RecipeViewset(BaseViewSet):
     #             context={'request': request}).data
     #     )
 
-    def destroy(self, request, *args, **kwargs):
-        instance = get_object_or_404(Recipe, pk=self.kwargs['pk'])
-        for ingredient in instance.ingredients.all():
-            ingredient.delete()
-        instance.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    # def destroy(self, request, *args, **kwargs):
+    #     instance = get_object_or_404(Recipe, pk=self.kwargs['pk'])
+    #     for ingredient in instance.ingredients.all():
+    #         ingredient.delete()
+    #     instance.delete()
+    #     return Response(status=status.HTTP_204_NO_CONTENT)
 
     def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
+
+    def perform_update(self, serializer):
         serializer.save(author=self.request.user)
 
     def get_queryset(self):
@@ -219,7 +222,7 @@ class RecipeViewset(BaseViewSet):
             queryset = queryset.filter(
                 shopping_carts=self.request.user.shopping_cart
             )
-        return queryset.order_by('published')
+        return queryset.order_by('-published')
 
 
 class UserSetPasswordViewset(views.APIView):
