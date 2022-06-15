@@ -37,9 +37,6 @@ jobs:
         passphrase: ${{ secrets.PASSPHRASE }}
         script: |
           cd dev/foodgram-project-react/infra/
-#          sudo docker compose stop
-#          sudo docker container rm infra-web-1
-#          sudo docker image rm hellfast/foodgram
           sudo docker compose down -v
           sudo docker compose rm infra
           sudo docker rmi -f $(sudo docker images -aq)
