@@ -116,7 +116,6 @@ class RecipeSerializer(serializers.ModelSerializer):
         ingredients = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
         tags_objs = Tag.objects.filter(id__in=tags)
-        print(**validated_data)
         obj = Recipe.objects.create(**validated_data)
         #obj = Recipe.objects.create(name='123', text='123', cooking_time=99, author=get_object_or_404(user, pk=1))
         self._create_ingredients(obj, ingredients)
@@ -128,7 +127,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         tags = validated_data.pop('tags')
         tags_objs = Tag.objects.filter(id__in=tags)
         obj = Recipe(**validated_data)
-        obj.save()
+        obj.save(pushlished=instance.published, author=self.request.user)
         self._create_ingredients(obj, ingredients)
         obj.tags.set(tags_objs)
         return obj
