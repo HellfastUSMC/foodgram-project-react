@@ -106,12 +106,12 @@ class Ingredient(models.Model):
         ordering = ['-id']
         verbose_name = 'Ингредиент'
         verbose_name_plural = 'Ингредиенты'
-        constraints = [
-            models.UniqueConstraint(
-                fields=['product', 'recipe'],
-                name='unique_product_recipe_pair'
-            )
-        ]
+        # constraints = [
+        #     models.UniqueConstraint(
+        #         fields=['product', 'recipe'],
+        #         name='unique_product_recipe_pair'
+        #     )
+        # ]
 
 
 class Subscription(models.Model):

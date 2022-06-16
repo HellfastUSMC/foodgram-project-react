@@ -103,9 +103,8 @@ class RecipeSerializer(serializers.ModelSerializer):
                 self.fields.pop(field_name)
 
     def _create_ingredients(self, obj, ingredients):
-        saved_args = locals()
-        print(saved_args)
         for ingredient in ingredients:
+            #print(vars(obj))
             Ingredient.objects.create(
                 product_id=int(ingredient['id']),
                 amount=int(ingredient['amount']),
@@ -113,6 +112,7 @@ class RecipeSerializer(serializers.ModelSerializer):
             )
 
     def create(self, validated_data):
+        #print(validated_data)
         ingredients = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
         tags_objs = Tag.objects.filter(id__in=tags)
@@ -124,12 +124,18 @@ class RecipeSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         ingredients = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
+        #author = validated_data.pop('author')
+        #instance.image = validated_data.pop('image')
         tags_objs = Tag.objects.filter(id__in=tags)
-        obj = Recipe(**validated_data)
-        obj.save(pushlished=instance.published, author=self.request.user)
-        self._create_ingredients(obj, ingredients)
-        obj.tags.set(tags_objs)
-        return obj
+        #print(ingredients)
+        #Recipe.objects.filter(pk=instance.id).update(**validated_data)
+        #print(instance.ingredients.filter(ingredient__recipe=instance).values())
+        #obj = Recipe(**validated_data)
+        #obj.save(pushlished=instance.published, author=self.request.user)
+        #obj = self.update(self.instance, validated_data)
+        self._create_ingredients(instance, ingredients)
+        instance.tags.set(tags_objs)
+        return super().update(instance, validated_data)
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
