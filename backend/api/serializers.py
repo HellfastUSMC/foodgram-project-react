@@ -116,7 +116,8 @@ class RecipeSerializer(serializers.ModelSerializer):
         ingredients = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
         tags_objs = Tag.objects.filter(id__in=tags)
-        obj = Recipe.objects.create(**validated_data)
+        #obj = Recipe.objects.create(**validated_data)
+        obj = Recipe.objects.create(name='123', text='123', cooking_time=99, author=get_object_or_404(user, pk=1))
         self._create_ingredients(obj, ingredients)
         obj.tags.set(tags_objs)
         return obj
@@ -247,9 +248,9 @@ class UserSupscriptionsSerializer(serializers.ModelSerializer):
     def get_limited_recipes(self, obj):
         limit = self.context['request'].query_params.get('recipes_limit', None)
         if limit is not None:
-            queryset = obj.recipes.all().order_by('id')[:int(limit)]
+            queryset = obj.recipes.all().order_by('-published')[:int(limit)]
         else:
-            queryset = obj.recipes.all().order_by('id')
+            queryset = obj.recipes.all().order_by('-published')
         data = RecipeSerializer(
             queryset,
             many=True,
