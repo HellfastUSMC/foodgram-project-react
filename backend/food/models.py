@@ -21,6 +21,11 @@ class Tag(models.Model):
     def __str__(self):
         return f'{self.name} {self.color}'
 
+    class Meta:
+        ordering = ['name']
+        verbose_name = 'Тэг'
+        verbose_name_plural = 'Тэги'
+
 
 class Product(models.Model):
     name = models.CharField(
@@ -36,6 +41,11 @@ class Product(models.Model):
     def __str__(self):
         return f'{self.name} {self.measurement_unit}'
 
+    class Meta:
+        ordering = ['name']
+        verbose_name = 'Продукт'
+        verbose_name_plural = 'Продукты'
+
 
 class Recipe(models.Model):
     author = models.ForeignKey(
@@ -47,8 +57,7 @@ class Recipe(models.Model):
     name = models.CharField('Название', max_length=200)
     image = models.ImageField(
         'Обложка',
-        upload_to='recipes/images',
-        max_length=5500000
+        upload_to='recipes/images'
     )
     text = models.TextField('Описание', max_length=1000)
     ingredients = models.ManyToManyField(
@@ -86,7 +95,8 @@ class Ingredient(models.Model):
     product = models.ForeignKey(
         Product,
         verbose_name='Продукт',
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        related_name='ingredients'
     )
     recipe = models.ForeignKey(
         Recipe,
@@ -103,7 +113,7 @@ class Ingredient(models.Model):
                 f'{self.product.measurement_unit}')
 
     class Meta:
-        ordering = ['-id']
+        ordering = ['id']
         verbose_name = 'Ингредиент'
         verbose_name_plural = 'Ингредиенты'
         # constraints = [
@@ -117,17 +127,24 @@ class Ingredient(models.Model):
 class Subscription(models.Model):
     author = models.ForeignKey(
         user, related_name='subscriptions',
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        verbose_name='Автор'
     )
     subscriber = models.ForeignKey(
         user,
         related_name='subscribers',
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        verbose_name='Подписчик'
     )
 
     def __str__(self):
         return (f'Подписка - автор: {self.author.email}'
                 f', подписчик: {self.subscriber.email}')
+
+    class Meta:
+        ordering = ['id']
+        verbose_name = 'Подписка'
+        verbose_name_plural = 'Подписки'
 
 
 class ShoppingCart(models.Model):
@@ -140,8 +157,14 @@ class ShoppingCart(models.Model):
     recipes = models.ManyToManyField(
         Recipe,
         related_name='shopping_carts',
-        blank=True
+        blank=True,
+        verbose_name='Рецепты'
     )
 
     def __str__(self):
         return f'Корзина {self.customer.username}'
+
+    class Meta:
+        ordering = ['id']
+        verbose_name = 'Корзина'
+        verbose_name_plural = 'Корзины'

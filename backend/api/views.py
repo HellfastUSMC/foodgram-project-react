@@ -1,11 +1,13 @@
 import codecs
+import os
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db.models import Sum
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from django_filters import rest_framework as dfilters
-from food.models import Product, Recipe, ShoppingCart, Subscription, Tag
+from food.models import Product, Recipe, ShoppingCart, Subscription, Tag, Ingredient
 from rest_framework import (mixins, permissions,
                             status, views, viewsets)
 from rest_framework.response import Response
@@ -75,7 +77,12 @@ class BaseViewSet(viewsets.ModelViewSet):
     pagination_class = pagination.DefaultPagination
 
 
-class UserViewset(BaseViewSet):
+class UserViewset(
+    mixins.CreateModelMixin,
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet
+):
     """Вьюха пользователей"""
     permission_classes = [
         local_rights.AllowPostOrReadOnly | local_rights.IsAdmin
@@ -88,61 +95,68 @@ class UserViewset(BaseViewSet):
             obj = self.request.user
         else:
             obj = get_object_or_404(user, pk=self.kwargs['pk'])
-        print(obj)
         return obj
 
-    def update(self, request, *args, **kwargs):
-        return Response(
-            {'detail': 'Метод запрещен'},
-            status=status.HTTP_405_METHOD_NOT_ALLOWED
-        )
+    # def update(self, request, *args, **kwargs):
+    #     return Response(
+    #         {'detail': 'Метод запрещен'},
+    #         status=status.HTTP_405_METHOD_NOT_ALLOWED
+    #     )
 
-    def destroy(self, request, *args, **kwargs):
-        return Response(
-            {'detail': 'Метод запрещен'},
-            status=status.HTTP_405_METHOD_NOT_ALLOWED
-        )
+    # def destroy(self, request, *args, **kwargs):
+    #     return Response(
+    #         {'detail': 'Метод запрещен'},
+    #         status=status.HTTP_405_METHOD_NOT_ALLOWED
+    #     )
 
-    def partial_update(self, request, *args, **kwargs):
-        return Response(
-            {'detail': 'Метод запрещен'},
-            status=status.HTTP_405_METHOD_NOT_ALLOWED
-        )
+    # def partial_update(self, request, *args, **kwargs):
+    #     return Response(
+    #         {'detail': 'Метод запрещен'},
+    #         status=status.HTTP_405_METHOD_NOT_ALLOWED
+    #     )
 
 
-class TagViewset(BaseViewSet):
+class TagViewset(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet
+):
     """Вьюха тэгов"""
     permission_classes = [local_rights.ReadOnly | local_rights.IsAdmin]
     pagination_class = None
-    queryset = Tag.objects.all().order_by('id')
+    queryset = Tag.objects.all()
     serializer_class = serializers.TagSerializer
 
-    def update(self, request, *args, **kwargs):
-        return Response(
-            {'detail': 'Метод запрещен'},
-            status=status.HTTP_405_METHOD_NOT_ALLOWED
-        )
+    # def update(self, request, *args, **kwargs):
+    #     return Response(
+    #         {'detail': 'Метод запрещен'},
+    #         status=status.HTTP_405_METHOD_NOT_ALLOWED
+    #     )
 
-    def destroy(self, request, *args, **kwargs):
-        return Response(
-            {'detail': 'Метод запрещен'},
-            status=status.HTTP_405_METHOD_NOT_ALLOWED
-        )
+    # def destroy(self, request, *args, **kwargs):
+    #     return Response(
+    #         {'detail': 'Метод запрещен'},
+    #         status=status.HTTP_405_METHOD_NOT_ALLOWED
+    #     )
 
-    def create(self, request, *args, **kwargs):
-        return Response(
-            {'detail': 'Метод запрещен'},
-            status=status.HTTP_405_METHOD_NOT_ALLOWED
-        )
+    # def create(self, request, *args, **kwargs):
+    #     return Response(
+    #         {'detail': 'Метод запрещен'},
+    #         status=status.HTTP_405_METHOD_NOT_ALLOWED
+    #     )
 
-    def partial_update(self, request, *args, **kwargs):
-        return Response(
-            {'detail': 'Метод запрещен'},
-            status=status.HTTP_405_METHOD_NOT_ALLOWED
-        )
+    # def partial_update(self, request, *args, **kwargs):
+    #     return Response(
+    #         {'detail': 'Метод запрещен'},
+    #         status=status.HTTP_405_METHOD_NOT_ALLOWED
+    #     )
 
 
-class ProductViewset(BaseViewSet):
+class ProductViewset(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet
+):
     """Вьюха продуктов"""
     pagination_class = None
     permission_classes = [local_rights.ReadOnly | local_rights.IsAdmin]
@@ -151,29 +165,29 @@ class ProductViewset(BaseViewSet):
     filter_backends = (dfilters.DjangoFilterBackend, )
     filterset_class = local_filters.ProductFilter
 
-    def update(self, request, *args, **kwargs):
-        return Response(
-            {'detail': 'Метод запрещен'},
-            status=status.HTTP_405_METHOD_NOT_ALLOWED
-        )
+    # def update(self, request, *args, **kwargs):
+    #     return Response(
+    #         {'detail': 'Метод запрещен'},
+    #         status=status.HTTP_405_METHOD_NOT_ALLOWED
+    #     )
 
-    def destroy(self, request, *args, **kwargs):
-        return Response(
-            {'detail': 'Метод запрещен'},
-            status=status.HTTP_405_METHOD_NOT_ALLOWED
-        )
+    # def destroy(self, request, *args, **kwargs):
+    #     return Response(
+    #         {'detail': 'Метод запрещен'},
+    #         status=status.HTTP_405_METHOD_NOT_ALLOWED
+    #     )
 
-    def create(self, request, *args, **kwargs):
-        return Response(
-            {'detail': 'Метод запрещен'},
-            status=status.HTTP_405_METHOD_NOT_ALLOWED
-        )
+    # def create(self, request, *args, **kwargs):
+    #     return Response(
+    #         {'detail': 'Метод запрещен'},
+    #         status=status.HTTP_405_METHOD_NOT_ALLOWED
+    #     )
 
-    def partial_update(self, request, *args, **kwargs):
-        return Response(
-            {'detail': 'Метод запрещен'},
-            status=status.HTTP_405_METHOD_NOT_ALLOWED
-        )
+    # def partial_update(self, request, *args, **kwargs):
+    #     return Response(
+    #         {'detail': 'Метод запрещен'},
+    #         status=status.HTTP_405_METHOD_NOT_ALLOWED
+        # )
 
 
 class RecipeViewset(BaseViewSet):
@@ -198,9 +212,35 @@ class RecipeViewset(BaseViewSet):
     #         ingredient.delete()
     #     instance.delete()
     #     return Response(status=status.HTTP_204_NO_CONTENT)
+    def _create_ingredients(self, obj, ingredients):
+        for ingredient in ingredients:
+            Ingredient.objects.create(
+                product_id=int(ingredient['id']),
+                amount=int(ingredient['amount']),
+                recipe_id=obj.id
+            )
 
     def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
+        obj = serializer.save(author=self.request.user)
+        tags = serializer.initial_data['tags']
+        ingredients = serializer.initial_data['ingredients']
+        #print(tags, ingredients)
+        obj.tags.set(Tag.objects.filter(id__in=tags))
+        self._create_ingredients(obj, ingredients)
+        #print(vars(obj))
+
+    def perform_update(self, serializer):
+        old_image_path = get_object_or_404(Recipe, pk=self.kwargs['pk']).image
+        #print(os.path.join(settings.MEDIA_ROOT, str(old_image_path)))
+        os.remove(os.path.join(settings.MEDIA_ROOT, str(old_image_path)))
+        print(old_image_path)
+        obj = serializer.save()
+        print(obj.image)
+        # old_ingredients = obj.ingredients.filter(ingredients__recipe_id=obj.id)
+        Ingredient.objects.filter(recipe=obj).delete()
+        new_ingredients = serializer.initial_data['ingredients']
+        self._create_ingredients(obj, new_ingredients)
+        #print(vars(obj))
 
     # def perform_update(self, serializer):
     #     serializer.save(author=self.request.user)
@@ -414,26 +454,26 @@ class ExportShoppingCart(viewsets.ViewSet):
         )
         return response
 
-    def update(self, request, *args, **kwargs):
-        return Response(
-            {'detail': 'Метод запрещен'},
-            status=status.HTTP_405_METHOD_NOT_ALLOWED
-        )
+    # def update(self, request, *args, **kwargs):
+    #     return Response(
+    #         {'detail': 'Метод запрещен'},
+    #         status=status.HTTP_405_METHOD_NOT_ALLOWED
+    #     )
 
-    def destroy(self, request, *args, **kwargs):
-        return Response(
-            {'detail': 'Метод запрещен'},
-            status=status.HTTP_405_METHOD_NOT_ALLOWED
-        )
+    # def destroy(self, request, *args, **kwargs):
+    #     return Response(
+    #         {'detail': 'Метод запрещен'},
+    #         status=status.HTTP_405_METHOD_NOT_ALLOWED
+    #     )
 
-    def create(self, request, *args, **kwargs):
-        return Response(
-            {'detail': 'Метод запрещен'},
-            status=status.HTTP_405_METHOD_NOT_ALLOWED
-        )
+    # def create(self, request, *args, **kwargs):
+    #     return Response(
+    #         {'detail': 'Метод запрещен'},
+    #         status=status.HTTP_405_METHOD_NOT_ALLOWED
+    #     )
 
-    def partial_update(self, request, *args, **kwargs):
-        return Response(
-            {'detail': 'Метод запрещен'},
-            status=status.HTTP_405_METHOD_NOT_ALLOWED
-        )
+    # def partial_update(self, request, *args, **kwargs):
+    #     return Response(
+    #         {'detail': 'Метод запрещен'},
+    #         status=status.HTTP_405_METHOD_NOT_ALLOWED
+    #     )
