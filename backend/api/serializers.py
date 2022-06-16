@@ -89,7 +89,7 @@ class RecipeSerializer(serializers.ModelSerializer):
     is_in_shopping_cart = serializers.SerializerMethodField(
         '_get_shopping_cart', read_only=True
     )
-    image = Base64ImageField(represent_in_base64=False)
+    image = Base64ImageField()
 
     def __init__(self, *args, **kwargs):
         fields = kwargs.pop('fields', None)
