@@ -48,7 +48,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
+    #'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -61,9 +61,9 @@ MIDDLEWARE = [
 ROOT_URLCONF = 'backend.urls'
 
 
-CORS_ORIGIN_WHITELIST = [
-    'http://localhost:80',
-]
+# CORS_ORIGIN_WHITELIST = [
+#     'http://localhost:80',
+# ]
 
 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
 TEMPLATES = [

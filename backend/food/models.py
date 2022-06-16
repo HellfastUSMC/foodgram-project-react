@@ -1,3 +1,5 @@
+from distutils.command.upload import upload
+from sys import maxsize
 from django.contrib.auth import get_user_model
 from django.core.validators import (MaxLengthValidator, MaxValueValidator,
                                     MinLengthValidator, MinValueValidator)
@@ -43,7 +45,11 @@ class Recipe(models.Model):
     )
     published = models.DateTimeField('Дата публикации', auto_now_add=True)
     name = models.CharField('Название', max_length=200)
-    image = models.ImageField('Обложка')
+    image = models.ImageField(
+        'Обложка',
+        upload_to='recipes/images',
+        max_length=5500000
+    )
     text = models.TextField('Описание', max_length=1000)
     ingredients = models.ManyToManyField(
         Product,
