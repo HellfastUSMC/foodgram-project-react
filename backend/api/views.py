@@ -87,6 +87,7 @@ class UserViewset(
     permission_classes = [
         local_rights.AllowPostOrReadOnly | local_rights.IsAdmin
     ]
+    pagination_class = pagination.DefaultPagination
     queryset = user.objects.all().order_by('id')
     serializer_class = serializers.UserSerializer
 
@@ -219,37 +220,42 @@ class RecipeViewset(BaseViewSet):
                 amount=int(ingredient['amount']),
                 recipe_id=obj.id
             )
-
     def perform_create(self, serializer):
         obj = serializer.save(author=self.request.user)
-        tags = serializer.initial_data['tags']
-        ingredients = serializer.initial_data['ingredients']
-        #print(tags, ingredients)
-        obj.tags.set(Tag.objects.filter(id__in=tags))
-        self._create_ingredients(obj, ingredients)
-        #print(vars(obj))
+    # def perform_create(self, serializer):
+    #     obj = serializer.save(author=self.request.user)
+    #     tags = serializer.initial_data['tags']
+    #     ingredients = serializer.initial_data['ingredients']
+    #     #print(tags, ingredients)
+    #     obj.tags.set(Tag.objects.filter(id__in=tags))
+    #     self._create_ingredients(obj, ingredients)
+    #     #print(vars(obj))
 
-    def perform_update(self, serializer):
-        old_image_path = get_object_or_404(Recipe, pk=self.kwargs['pk']).image
-        #print(os.path.join(settings.MEDIA_ROOT, str(old_image_path)))
-        os.remove(os.path.join(settings.MEDIA_ROOT, str(old_image_path)))
-        print(old_image_path)
-        obj = serializer.save()
-        print(obj.image)
-        # old_ingredients = obj.ingredients.filter(ingredients__recipe_id=obj.id)
-        Ingredient.objects.filter(recipe=obj).delete()
-        new_ingredients = serializer.initial_data['ingredients']
-        self._create_ingredients(obj, new_ingredients)
-        #print(vars(obj))
+    # def perform_update(self, serializer):
+    #     old_image_path = get_object_or_404(Recipe, pk=self.kwargs['pk']).image
+    #     #print(os.path.join(settings.MEDIA_ROOT, str(old_image_path)))
+    #     os.remove(os.path.join(settings.MEDIA_ROOT, str(old_image_path)))
+    #     print(old_image_path)
+    #     obj = serializer.save()
+    #     print(obj.image)
+    #     # old_ingredients = obj.ingredients.filter(ingredients__recipe_id=obj.id)
+    #     Ingredient.objects.filter(recipe=obj).delete()
+    #     new_ingredients = serializer.initial_data['ingredients']
+    #     self._create_ingredients(obj, new_ingredients)
+    #     #print(vars(obj))
 
     # def perform_update(self, serializer):
     #     serializer.save(author=self.request.user)
 
     def get_queryset(self):
         queryset = Recipe.objects.all()
-        if self.request.GET.get('is_favorited') == '1':
+        cur_user = self.request.user
+        if (
+            self.request.GET.get('is_favorited') == '1'
+            and cur_user.is_authenticated
+        ):
             # queryset = queryset.filter(favorites__id=self.request.user.id)
-            queryset = self.request.user.favorites.all()
+            queryset = cur_user.favorites.all()
         if self.request.GET.getlist('tags'):
             queryset = queryset.filter(
                 tags__slug__in=self.request.GET.getlist('tags')
@@ -258,9 +264,12 @@ class RecipeViewset(BaseViewSet):
             queryset = queryset.filter(
                 author__id=self.request.GET.get('author')
             )
-        if self.request.GET.get('is_in_shopping_cart') == '1':
+        if (
+            self.request.GET.get('is_in_shopping_cart') == '1'
+            and cur_user.is_authenticated
+        ):
             queryset = queryset.filter(
-                shopping_carts=self.request.user.shopping_cart
+                shopping_carts=cur_user.shopping_cart
             )
         return queryset.order_by('-published')
 
@@ -298,7 +307,7 @@ class AddToFavoriteView(views.APIView):
         recipe_obj = get_object_or_404(Recipe, pk=recipe_id)
         if recipe_obj.favorites.filter(id=cur_user.id).exists():
             return Response(
-                {'detail': 'Рецепт уже добавлен в избранное'},
+                {'errors': 'Рецепт уже добавлен в избранное'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         recipe_obj.favorites.add(cur_user)
@@ -314,7 +323,7 @@ class AddToFavoriteView(views.APIView):
         recipe_obj = get_object_or_404(Recipe, pk=recipe_id)
         if not recipe_obj.favorites.filter(id=cur_user.id).exists():
             return Response(
-                {'detail': 'Рецепт отсутствует в избранном'},
+                {'errors': 'Рецепт отсутствует в избранном'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         recipe_obj.favorites.remove(cur_user)
@@ -341,7 +350,7 @@ class SubscribeView(viewsets.ViewSet):
             author=author
         ).filter(subscriber=request.user).exists():
             return Response(
-                {'error': 'Невозможно подписаться'},
+                {'errors': 'Невозможно подписаться'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         else:
@@ -358,7 +367,7 @@ class SubscribeView(viewsets.ViewSet):
             subscriber=request.user
         ).exists():
             return Response(
-                {'error': 'Невозможно отписаться'},
+                {'errors': 'Невозможно отписаться'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -382,7 +391,7 @@ class AddToShoppingCartView(viewsets.ViewSet):
 
         if shopping_cart.recipes.filter(pk=recipe_id).exists():
             return Response(
-                {'error': 'Рецепт уже добавлен'},
+                {'errors': 'Рецепт уже добавлен'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -403,7 +412,7 @@ class AddToShoppingCartView(viewsets.ViewSet):
 
         if not cart.recipes.filter(pk=recipe_id).exists():
             return Response(
-                {'error': 'Рецепт отсутствует в корзине'},
+                {'errors': 'Рецепт отсутствует в корзине'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 

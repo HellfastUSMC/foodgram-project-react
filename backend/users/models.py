@@ -5,18 +5,28 @@ from .managers import CustomUserManager
 
 
 class CustomUser(AbstractUser):
-    email = models.EmailField('email address', unique=True, max_length=254)
+    email = models.EmailField(
+        unique=True,
+        max_length=254,
+        verbose_name='Адрес email'
+    )
     username = models.CharField(
-        'username',
         unique=True,
         max_length=150,
         validators=[RegexValidator(
             r'^[\w.@+-]+\Z',
             'Имя пользователя содержит недопустимые символы'
-        )]
+        )],
+        verbose_name='Псевдоним'
     )
-    first_name = models.CharField('first name', max_length=150)
-    last_name = models.CharField('last name', max_length=150)
+    first_name = models.CharField(
+        max_length=150,
+        verbose_name='Имя'
+    )
+    last_name = models.CharField(
+        max_length=150,
+        verbose_name='Фамилия'
+    )
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username', 'first_name', 'last_name']

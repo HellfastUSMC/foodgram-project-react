@@ -1,5 +1,10 @@
+from tkinter import Image
 from django.core import exceptions
 from django.contrib.auth import get_user_model, password_validation
+import base64
+import io
+from PIL import Image as pil_image
+from django.forms import ValidationError
 from django.shortcuts import get_object_or_404
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers, validators
@@ -94,12 +99,12 @@ class IngredientSerializer(serializers.ModelSerializer):
 
 class RecipeSerializer(serializers.ModelSerializer):
     """Сериализатор рецептов."""
-    tags = TagSerializer(many=True, read_only=True)
+    tags = TagSerializer(many=True)
     author = UserSerializer(read_only=True)
     ingredients = IngredientSerializer(
         source='ingredient_set',
         many=True,
-        read_only=True
+        #read_only=True
     )
     is_favorited = serializers.SerializerMethodField(
         '_get_favorited', read_only=True
@@ -120,20 +125,18 @@ class RecipeSerializer(serializers.ModelSerializer):
             for field_name in existing - allowed:
                 self.fields.pop(field_name)
 
-
-
-    # def create(self, validated_data):
-    #     print(validated_data)
-    #     ingredients = validated_data.pop('ingredients')
-    #     tags = validated_data.pop('tags')
-    #     #image = validated_data.pop('image')
-    #     #validated_data['image'] = self._decode_image(image)
-    #     tags_objs = Tag.objects.filter(id__in=tags)
-    #     #obj = Recipe.objects.create(**validated_data, image=image)
-    #     obj = super().create(validated_data)
-    #     self._create_ingredients(obj, ingredients)
-    #     obj.tags.set(tags_objs)
-    #     return obj
+    def create(self, validated_data):
+        #print(validated_data)
+        ingredients = validated_data.pop('ingredient_set')
+        tags = validated_data.pop('tags')
+        #image = validated_data.pop('image')
+        #validated_data['image'] = self._decode_image(image)
+        tags_objs = Tag.objects.filter(id__in=tags)
+        #obj = Recipe.objects.create(**validated_data, image=image)
+        obj = super().create(validated_data)
+        self._create_ingredients(obj, ingredients)
+        obj.tags.set(tags_objs)
+        return obj
 
     # def update(self, instance, validated_data):
     #     ingredients = validated_data.pop('ingredients')
@@ -152,25 +155,43 @@ class RecipeSerializer(serializers.ModelSerializer):
     #     instance.tags.set(tags_objs)
     #     return super().update(instance, validated_data)
 
-    def to_representation(self, instance):
-        representation = super().to_representation(instance)
-        if 'tags' in self.fields:
-            representation['tags'] = TagSerializer(
-                instance.tags.all(),
-                many=True
-            ).data
-        if 'ingredients' in self.fields:
-            representation['ingredients'] = IngredientSerializer(
-                Ingredient.objects.filter(recipe=instance),
-                many=True
-            ).data
-        return representation
+    # def to_representation(self, instance):
+    #     representation = super().to_representation(instance)
+    #     if 'tags' in self.fields:
+    #         representation['tags'] = TagSerializer(
+    #             instance.tags.all(),
+    #             many=True
+    #         ).data
+    #     if 'ingredients' in self.fields:
+    #         representation['ingredients'] = IngredientSerializer(
+    #             Ingredient.objects.filter(recipe=instance),
+    #             many=True
+    #         ).data
+    #     return representation
 
-    # def to_internal_value(self, data):
-    #     print('raw data', data)
-    #     return super().to_internal_value(data)
-    def validate_tags(self):
-        pass
+    def to_internal_value(self, data):
+        print(data)
+        #data['tags'] = Tag.objects.filter(id__in=data['tags'])
+        return super().to_internal_value(data)
+
+    # def validate_nested_tags(self, data):
+    #     msg = []
+    #     if 'tags' not in self.initial_data:
+    #         msg.append('Обязательное поле.')
+    #     if not self.initial_data['tags']:
+    #         msg.append('Это поле не может быть пустым.')
+    #     raise ValidationError(msg)
+
+    def validate_image(self, data):
+        msg = ''
+        if not data:
+            msg = 'Это поле не может быть пустым.'
+        if 'image' not in self.initial_data:
+            msg = 'Обязательное поле.'
+        if msg:
+            raise ValidationError(msg)
+        return data
+
 
     def _get_shopping_cart(self, obj):
         request = self.context.get('request', None)
