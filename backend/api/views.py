@@ -1,4 +1,3 @@
-import codecs
 import os
 
 from django.conf import settings
@@ -7,7 +6,10 @@ from django.db.models import Sum
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from django_filters import rest_framework as dfilters
-from food.models import Product, Recipe, ShoppingCart, Subscription, Tag, Ingredient
+from food.models import (
+    Product, Recipe, ShoppingCart,
+    Subscription, Tag, Ingredient
+)
 from rest_framework import (mixins, permissions,
                             status, views, viewsets)
 from rest_framework.response import Response
@@ -98,24 +100,6 @@ class UserViewset(
             obj = get_object_or_404(user, pk=self.kwargs['pk'])
         return obj
 
-    # def update(self, request, *args, **kwargs):
-    #     return Response(
-    #         {'detail': 'Метод запрещен'},
-    #         status=status.HTTP_405_METHOD_NOT_ALLOWED
-    #     )
-
-    # def destroy(self, request, *args, **kwargs):
-    #     return Response(
-    #         {'detail': 'Метод запрещен'},
-    #         status=status.HTTP_405_METHOD_NOT_ALLOWED
-    #     )
-
-    # def partial_update(self, request, *args, **kwargs):
-    #     return Response(
-    #         {'detail': 'Метод запрещен'},
-    #         status=status.HTTP_405_METHOD_NOT_ALLOWED
-    #     )
-
 
 class TagViewset(
     mixins.ListModelMixin,
@@ -127,30 +111,6 @@ class TagViewset(
     pagination_class = None
     queryset = Tag.objects.all()
     serializer_class = serializers.TagSerializer
-
-    # def update(self, request, *args, **kwargs):
-    #     return Response(
-    #         {'detail': 'Метод запрещен'},
-    #         status=status.HTTP_405_METHOD_NOT_ALLOWED
-    #     )
-
-    # def destroy(self, request, *args, **kwargs):
-    #     return Response(
-    #         {'detail': 'Метод запрещен'},
-    #         status=status.HTTP_405_METHOD_NOT_ALLOWED
-    #     )
-
-    # def create(self, request, *args, **kwargs):
-    #     return Response(
-    #         {'detail': 'Метод запрещен'},
-    #         status=status.HTTP_405_METHOD_NOT_ALLOWED
-    #     )
-
-    # def partial_update(self, request, *args, **kwargs):
-    #     return Response(
-    #         {'detail': 'Метод запрещен'},
-    #         status=status.HTTP_405_METHOD_NOT_ALLOWED
-    #     )
 
 
 class ProductViewset(
@@ -166,30 +126,6 @@ class ProductViewset(
     filter_backends = (dfilters.DjangoFilterBackend, )
     filterset_class = local_filters.ProductFilter
 
-    # def update(self, request, *args, **kwargs):
-    #     return Response(
-    #         {'detail': 'Метод запрещен'},
-    #         status=status.HTTP_405_METHOD_NOT_ALLOWED
-    #     )
-
-    # def destroy(self, request, *args, **kwargs):
-    #     return Response(
-    #         {'detail': 'Метод запрещен'},
-    #         status=status.HTTP_405_METHOD_NOT_ALLOWED
-    #     )
-
-    # def create(self, request, *args, **kwargs):
-    #     return Response(
-    #         {'detail': 'Метод запрещен'},
-    #         status=status.HTTP_405_METHOD_NOT_ALLOWED
-    #     )
-
-    # def partial_update(self, request, *args, **kwargs):
-    #     return Response(
-    #         {'detail': 'Метод запрещен'},
-    #         status=status.HTTP_405_METHOD_NOT_ALLOWED
-        # )
-
 
 class RecipeViewset(BaseViewSet):
     """Вьюха рецептов"""
@@ -198,21 +134,6 @@ class RecipeViewset(BaseViewSet):
         local_rights.ReadAnyPostAuthChangeOwner | local_rights.IsAdmin
     ]
 
-    # def create(self, request, *args, **kwargs):
-    #     #super().create(request, *args, **kwargs)
-    #     request = self.request
-    #     return Response(
-    #         serializers.RecipeSerializer(
-    #             self.request.user.recipes.last(),
-    #             context={'request': request}).data
-    #     )
-
-    # def destroy(self, request, *args, **kwargs):
-    #     instance = get_object_or_404(Recipe, pk=self.kwargs['pk'])
-    #     for ingredient in instance.ingredients.all():
-    #         ingredient.delete()
-    #     instance.delete()
-    #     return Response(status=status.HTTP_204_NO_CONTENT)
     def _create_ingredients(self, obj, ingredients):
         for ingredient in ingredients:
             Ingredient.objects.create(
@@ -220,32 +141,19 @@ class RecipeViewset(BaseViewSet):
                 amount=int(ingredient['amount']),
                 recipe_id=obj.id
             )
+
     def perform_create(self, serializer):
         obj = serializer.save(author=self.request.user)
-    # def perform_create(self, serializer):
-    #     obj = serializer.save(author=self.request.user)
-    #     tags = serializer.initial_data['tags']
-    #     ingredients = serializer.initial_data['ingredients']
-    #     #print(tags, ingredients)
-    #     obj.tags.set(Tag.objects.filter(id__in=tags))
-    #     self._create_ingredients(obj, ingredients)
-    #     #print(vars(obj))
+        ingredients = serializer.initial_data['ingredients']
+        self._create_ingredients(obj, ingredients)
 
-    # def perform_update(self, serializer):
-    #     old_image_path = get_object_or_404(Recipe, pk=self.kwargs['pk']).image
-    #     #print(os.path.join(settings.MEDIA_ROOT, str(old_image_path)))
-    #     os.remove(os.path.join(settings.MEDIA_ROOT, str(old_image_path)))
-    #     print(old_image_path)
-    #     obj = serializer.save()
-    #     print(obj.image)
-    #     # old_ingredients = obj.ingredients.filter(ingredients__recipe_id=obj.id)
-    #     Ingredient.objects.filter(recipe=obj).delete()
-    #     new_ingredients = serializer.initial_data['ingredients']
-    #     self._create_ingredients(obj, new_ingredients)
-    #     #print(vars(obj))
-
-    # def perform_update(self, serializer):
-    #     serializer.save(author=self.request.user)
+    def perform_update(self, serializer):
+        old_image_path = get_object_or_404(Recipe, pk=self.kwargs['pk']).image
+        os.remove(os.path.join(settings.MEDIA_ROOT, str(old_image_path)))
+        obj = serializer.save()
+        Ingredient.objects.filter(recipe=obj).delete()
+        new_ingredients = serializer.initial_data['ingredients']
+        self._create_ingredients(obj, new_ingredients)
 
     def get_queryset(self):
         queryset = Recipe.objects.all()
@@ -254,7 +162,6 @@ class RecipeViewset(BaseViewSet):
             self.request.GET.get('is_favorited') == '1'
             and cur_user.is_authenticated
         ):
-            # queryset = queryset.filter(favorites__id=self.request.user.id)
             queryset = cur_user.favorites.all()
         if self.request.GET.getlist('tags'):
             queryset = queryset.filter(
@@ -424,10 +331,10 @@ class ExportShoppingCart(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated | local_rights.IsAdmin]
 
     def get(self, request):
-        data = list(request.user.shopping_cart.recipes.all().values(
-            'ingredients__product__name',
-            'ingredients__product__measurement_unit'
-        ).annotate(amount=Sum('ingredients__amount')))
+        data = request.user.shopping_cart.recipes.all().values(
+            'ingredients__name',
+            'ingredients__measurement_unit'
+        ).annotate(amount=Sum('ingredients__ingredients__amount'))
         with open(
             f'{request.user.username}_shopping_cart.txt',
             'wb'
@@ -438,51 +345,21 @@ class ExportShoppingCart(viewsets.ViewSet):
             file.write('\n'.encode('utf8'))
             for product in data:
                 file.write(
-                    f"{product['ingredients__product__name']}"
-                    f" ({product['ingredients__product__measurement_unit']})"
+                    f"{product['ingredients__name']}"
+                    f" ({product['ingredients__measurement_unit']})"
                     f" - {product['amount']}".encode('utf8')
                 )
                 file.write('\n'.encode('utf8'))
             file.write('\n'.encode('utf8'))
             file.write('Составлено с ❤ и FoodGram'.encode('utf8'))
-        # file = open(f'{request.user.username}_shopping_cart.txt', 'rb')
-        file = codecs.open(
-            f'{request.user.username}_shopping_cart.txt',
-            'w',
-            'utf-8'
-        )
+        file = open(f'{request.user.username}_shopping_cart.txt', 'rb')
         response = FileResponse(
             file,
             filename=f'{request.user.username}_shopping_cart.txt'
         )
-        file.close()
         response['Content-Disposition'] = (
             'attachment; filename={0}'.format(
                 f'{request.user.username}_shopping_cart.txt'
             )
         )
         return response
-
-    # def update(self, request, *args, **kwargs):
-    #     return Response(
-    #         {'detail': 'Метод запрещен'},
-    #         status=status.HTTP_405_METHOD_NOT_ALLOWED
-    #     )
-
-    # def destroy(self, request, *args, **kwargs):
-    #     return Response(
-    #         {'detail': 'Метод запрещен'},
-    #         status=status.HTTP_405_METHOD_NOT_ALLOWED
-    #     )
-
-    # def create(self, request, *args, **kwargs):
-    #     return Response(
-    #         {'detail': 'Метод запрещен'},
-    #         status=status.HTTP_405_METHOD_NOT_ALLOWED
-    #     )
-
-    # def partial_update(self, request, *args, **kwargs):
-    #     return Response(
-    #         {'detail': 'Метод запрещен'},
-    #         status=status.HTTP_405_METHOD_NOT_ALLOWED
-    #     )

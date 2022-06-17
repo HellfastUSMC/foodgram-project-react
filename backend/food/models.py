@@ -86,7 +86,6 @@ class Recipe(models.Model):
         return f'{self.name} {self.author.username}'
 
     class Meta:
-        ordering = ['-published']
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
 
@@ -101,7 +100,7 @@ class Ingredient(models.Model):
     recipe = models.ForeignKey(
         Recipe,
         verbose_name='Рецепт',
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
     )
     amount = models.PositiveSmallIntegerField(
         'Количество',
@@ -116,12 +115,6 @@ class Ingredient(models.Model):
         ordering = ['id']
         verbose_name = 'Ингредиент'
         verbose_name_plural = 'Ингредиенты'
-        # constraints = [
-        #     models.UniqueConstraint(
-        #         fields=['product', 'recipe'],
-        #         name='unique_product_recipe_pair'
-        #     )
-        # ]
 
 
 class Subscription(models.Model):

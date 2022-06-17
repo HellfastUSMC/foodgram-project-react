@@ -1,13 +1,8 @@
-from tkinter import Image
 from django.core import exceptions
 from django.contrib.auth import get_user_model, password_validation
-import base64
-import io
-from PIL import Image as pil_image
 from django.forms import ValidationError
-from django.shortcuts import get_object_or_404
 from drf_extra_fields.fields import Base64ImageField
-from rest_framework import serializers, validators
+from rest_framework import serializers
 
 from food.models import (Ingredient, Product, Recipe,
                          Subscription, Tag, ShoppingCart)
@@ -86,7 +81,7 @@ class TagSerializer(serializers.ModelSerializer):
 
 class IngredientSerializer(serializers.ModelSerializer):
     """Сериализатор ингредиентов."""
-    id = serializers.ReadOnlyField(source='product.id') # New field 4 test
+    id = serializers.ReadOnlyField(source='product.id')
     name = serializers.ReadOnlyField(source='product.name')
     measurement_unit = serializers.ReadOnlyField(
         source='product.measurement_unit'
@@ -99,12 +94,15 @@ class IngredientSerializer(serializers.ModelSerializer):
 
 class RecipeSerializer(serializers.ModelSerializer):
     """Сериализатор рецептов."""
-    tags = TagSerializer(many=True)
+    tags = serializers.PrimaryKeyRelatedField(
+        queryset=Tag.objects.all(),
+        many=True
+    )
     author = UserSerializer(read_only=True)
     ingredients = IngredientSerializer(
         source='ingredient_set',
         many=True,
-        #read_only=True
+        read_only=True
     )
     is_favorited = serializers.SerializerMethodField(
         '_get_favorited', read_only=True
@@ -125,73 +123,28 @@ class RecipeSerializer(serializers.ModelSerializer):
             for field_name in existing - allowed:
                 self.fields.pop(field_name)
 
-    def create(self, validated_data):
-        #print(validated_data)
-        ingredients = validated_data.pop('ingredient_set')
-        tags = validated_data.pop('tags')
-        #image = validated_data.pop('image')
-        #validated_data['image'] = self._decode_image(image)
-        tags_objs = Tag.objects.filter(id__in=tags)
-        #obj = Recipe.objects.create(**validated_data, image=image)
-        obj = super().create(validated_data)
-        self._create_ingredients(obj, ingredients)
-        obj.tags.set(tags_objs)
-        return obj
-
-    # def update(self, instance, validated_data):
-    #     ingredients = validated_data.pop('ingredients')
-    #     tags = validated_data.pop('tags')
-    #     image = validated_data.pop('image')
-    #     #author = validated_data.pop('author')
-    #     #instance.image = validated_data.pop('image')
-    #     tags_objs = Tag.objects.filter(id__in=tags)
-    #     #print(ingredients)
-    #     #Recipe.objects.filter(pk=instance.id).update(**validated_data)
-    #     #print(instance.ingredients.filter(ingredient__recipe=instance).values())
-    #     obj = Recipe(**validated_data)
-    #     #obj.save(pushlished=instance.published, image=image)
-    #     #obj = self.update(self.instance, validated_data)
-    #     self._create_ingredients(instance, ingredients)
-    #     instance.tags.set(tags_objs)
-    #     return super().update(instance, validated_data)
-
-    # def to_representation(self, instance):
-    #     representation = super().to_representation(instance)
-    #     if 'tags' in self.fields:
-    #         representation['tags'] = TagSerializer(
-    #             instance.tags.all(),
-    #             many=True
-    #         ).data
-    #     if 'ingredients' in self.fields:
-    #         representation['ingredients'] = IngredientSerializer(
-    #             Ingredient.objects.filter(recipe=instance),
-    #             many=True
-    #         ).data
-    #     return representation
-
-    def to_internal_value(self, data):
-        print(data)
-        #data['tags'] = Tag.objects.filter(id__in=data['tags'])
-        return super().to_internal_value(data)
-
-    # def validate_nested_tags(self, data):
-    #     msg = []
-    #     if 'tags' not in self.initial_data:
-    #         msg.append('Обязательное поле.')
-    #     if not self.initial_data['tags']:
-    #         msg.append('Это поле не может быть пустым.')
-    #     raise ValidationError(msg)
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        if 'tags' in self.fields:
+            representation['tags'] = TagSerializer(
+                instance.tags.all(),
+                many=True
+            ).data
+        return representation
 
     def validate_image(self, data):
-        msg = ''
         if not data:
-            msg = 'Это поле не может быть пустым.'
-        if 'image' not in self.initial_data:
-            msg = 'Обязательное поле.'
-        if msg:
-            raise ValidationError(msg)
+            raise ValidationError('Это поле не может быть пустым.')
         return data
 
+    def validate(self, attrs):
+        if 'ingredients' not in self.initial_data:
+            raise ValidationError({'ingredients': 'Обязательное поле.'})
+        if not self.initial_data['ingredients']:
+            raise ValidationError(
+                {'ingredients': 'Это поле не может быть пустым.'}
+            )
+        return super().validate(attrs)
 
     def _get_shopping_cart(self, obj):
         request = self.context.get('request', None)
@@ -208,67 +161,6 @@ class RecipeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
         exclude = ['favorites', 'published']
-
-
-    # def _get_post_ingredients(self, obj):
-    #     request = self.context.get('request', None)
-
-    #     def validate_request(ingredient_id, ingredient_amount):
-    #         msg = {}
-    #         if not Product.objects.filter(pk=int(ingredient_id)).exists():
-    #             msg['ingredients'] = (
-    #                 f'Объект не найден, проверьте'
-    #                 f'значение поля id - {ingredient_id}'
-    #             )
-    #         if 0 >= int(ingredient_amount):
-    #             msg['amount'] = (
-    #                 f'Проверьте значение поля amount '
-    #                 f'- {ingredient_amount}'
-    #             )
-    #         return msg
-
-    #     if (
-    #         request.method == 'GET'
-    #         or 'shopping_cart' in request.get_full_path()
-    #         or 'view' not in self.context
-    #     ):
-    #         return IngredientSerializer(obj.ingredients.all(), many=True).data
-
-        # if request.method == 'POST':
-        #     if 'ingredients' not in request.data:
-        #         raise serializers.ValidationError(
-        #             {'ingredients': 'Поле ingredients обязательное'},
-        #             code=400
-        #         )
-        #     for ingredient in request.data['ingredients']:
-        #         msg = validate_request(ingredient['id'], ingredient['amount'])
-        #         if msg:
-        #             raise serializers.ValidationError(msg, code=400)
-        #         instance = Ingredient.objects.create(
-        #             product=get_object_or_404(Product, pk=ingredient['id']),
-        #             amount=ingredient['amount']
-        #         )
-        #         obj.ingredients.add(instance)
-        #     return IngredientSerializer(obj.ingredients.all(), many=True).data
-
-        # if request.method == 'PATCH' and 'ingredients' in request.data:
-        #     #obj.ingredients.clear()
-        #     for ingredient in request.data['ingredients']:
-        #         msg = validate_request(ingredient['id'], ingredient['amount'])
-        #         if msg:
-        #             raise serializers.ValidationError(msg, code=400)
-        #         instance, exists = Ingredient.objects.get_or_create(
-        #             product__id=int(ingredient['id']),
-        #             amount=int(ingredient['amount'])
-        #         )
-        #         obj.ingredients.add(instance)
-        #     return IngredientSerializer(
-        #         obj.ingredients.all(),
-        #         many=True
-        #     ).data
-        # extra_kwargs = {
-        #     'ingredients': {'required': True, 'allow_blank': False}
-        # }
 
 
 class UserSupscriptionsSerializer(serializers.ModelSerializer):
