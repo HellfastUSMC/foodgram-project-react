@@ -1,33 +1,19 @@
-import os
-
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db.models import Sum
-from django.http import FileResponse
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters import rest_framework as dfilters
-from food.models import (Ingredient, Product, Recipe, ShoppingCart,
-                         Subscription, Tag)
 from rest_framework import mixins, permissions, status, views, viewsets
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 
-from . import filters as local_filters
-from . import pagination
-from . import permissions as local_rights
-from . import serializers
+from . import (
+    filters as local_filters, pagination, permissions as local_rights,
+    serializers, utils,
+)
+from food.models import Product, Recipe, ShoppingCart, Subscription, Tag
 
 user = get_user_model()
-
-
-def check_fields(request, fields):
-    response_message = {}
-    for field in fields:
-        if field not in request.data or not request.data[field]:
-            response_message[field] = f'Проверьте поле {field}'
-    if response_message:
-        return response_message
-    return None
 
 
 class TokenLogin(viewsets.ViewSet):
@@ -35,7 +21,7 @@ class TokenLogin(viewsets.ViewSet):
 
     def post(self, request, *args, **kwargs):
         fields = ['email', 'password']
-        check_errors = check_fields(request, fields)
+        check_errors = utils.check_fields(request, fields)
         if check_errors:
             return Response(
                 check_errors,
@@ -66,14 +52,6 @@ class TokenLogout(viewsets.ViewSet):
         token = get_object_or_404(Token, user=request.user)
         token.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
-
-
-class BaseViewSet(viewsets.ModelViewSet):
-    """Базовая вьюха."""
-    permission_classes = [
-        permissions.IsAuthenticatedOrReadOnly | local_rights.IsAdmin
-    ]
-    pagination_class = pagination.DefaultPagination
 
 
 class UserViewset(
@@ -124,33 +102,16 @@ class ProductViewset(
     filterset_class = local_filters.ProductFilter
 
 
-class RecipeViewset(BaseViewSet):
+class RecipeViewset(viewsets.ModelViewSet):
     """Вьюха рецептов"""
     serializer_class = serializers.RecipeSerializer
+    pagination_class = pagination.DefaultPagination
     permission_classes = [
         local_rights.ReadAnyPostAuthChangeOwner | local_rights.IsAdmin
     ]
 
-    def _create_ingredients(self, obj, ingredients):
-        for ingredient in ingredients:
-            Ingredient.objects.create(
-                product_id=int(ingredient['id']),
-                amount=int(ingredient['amount']),
-                recipe_id=obj.id
-            )
-
     def perform_create(self, serializer):
-        obj = serializer.save(author=self.request.user)
-        ingredients = serializer.initial_data['ingredients']
-        self._create_ingredients(obj, ingredients)
-
-    def perform_update(self, serializer):
-        old_image_path = get_object_or_404(Recipe, pk=self.kwargs['pk']).image
-        os.remove(os.path.join(settings.MEDIA_ROOT, str(old_image_path)))
-        obj = serializer.save()
-        Ingredient.objects.filter(recipe=obj).delete()
-        new_ingredients = serializer.initial_data['ingredients']
-        self._create_ingredients(obj, new_ingredients)
+        serializer.save(author=self.request.user)
 
     def get_queryset(self):
         queryset = Recipe.objects.all()
@@ -332,27 +293,17 @@ class ExportShoppingCart(viewsets.ViewSet):
             'ingredients__name',
             'ingredients__measurement_unit'
         ).annotate(amount=Sum('ingredients__ingredients__amount'))
-        with open(
-            f'{request.user.username}_shopping_cart.txt',
-            'wb'
-        ) as file:
-            file.write(
-                f'Список покупок для {request.user.username}:'.encode('utf8')
-            )
-            file.write('\n'.encode('utf8'))
-            for product in data:
-                file.write(
-                    f"{product['ingredients__name']}"
-                    f" ({product['ingredients__measurement_unit']})"
-                    f" - {product['amount']}".encode('utf8')
-                )
-                file.write('\n'.encode('utf8'))
-            file.write('\n'.encode('utf8'))
-            file.write('Составлено с ❤ и FoodGram'.encode('utf8'))
-        file = open(f'{request.user.username}_shopping_cart.txt', 'rb')
-        response = FileResponse(
-            file,
-            filename=f'{request.user.username}_shopping_cart.txt'
+        text = []
+        text.append(f'Список покупок для {request.user.username}:\n')
+        for product in data:
+            text.append(f"{product['ingredients__name']}"
+                        f" ({product['ingredients__measurement_unit']})"
+                        f" - {product['amount']}")
+        text.append('\nСоставлено с ❤ и FoodGram')
+        ready_text = '\n'.join(text)
+        response = HttpResponse(
+            ready_text,
+            content_type="text/plain,charset=utf8"
         )
         response['Content-Disposition'] = (
             'attachment; filename={0}'.format(

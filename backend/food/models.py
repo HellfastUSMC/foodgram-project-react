@@ -1,6 +1,8 @@
 from django.contrib.auth import get_user_model
-from django.core.validators import (MaxLengthValidator, MaxValueValidator,
-                                    MinLengthValidator, MinValueValidator)
+from django.core.validators import (
+    MaxLengthValidator, MaxValueValidator, MinLengthValidator,
+    MinValueValidator,
+)
 from django.db import models
 
 user = get_user_model()
@@ -16,13 +18,13 @@ class Tag(models.Model):
     )
     slug = models.SlugField('Slug', unique=True, max_length=30)
 
-    def __str__(self):
-        return f'{self.name} {self.color}'
-
     class Meta:
         ordering = ['name']
         verbose_name = 'Тэг'
         verbose_name_plural = 'Тэги'
+
+    def __str__(self):
+        return f'{self.name} {self.color}'
 
 
 class Product(models.Model):
@@ -36,13 +38,13 @@ class Product(models.Model):
         max_length=30
     )
 
-    def __str__(self):
-        return f'{self.name} {self.measurement_unit}'
-
     class Meta:
         ordering = ['name']
         verbose_name = 'Продукт'
         verbose_name_plural = 'Продукты'
+
+    def __str__(self):
+        return f'{self.name} {self.measurement_unit}'
 
 
 class Recipe(models.Model):
@@ -80,15 +82,16 @@ class Recipe(models.Model):
         blank=True,
     )
 
-    def __str__(self):
-        return f'{self.name} {self.author.username}'
-
     class Meta:
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
 
+    def __str__(self):
+        return f'{self.name} {self.author.username}'
+
 
 class Ingredient(models.Model):
+
     product = models.ForeignKey(
         Product,
         verbose_name='Продукт',
@@ -98,21 +101,21 @@ class Ingredient(models.Model):
     recipe = models.ForeignKey(
         Recipe,
         verbose_name='Рецепт',
-        on_delete=models.CASCADE,
+        on_delete=models.CASCADE
     )
     amount = models.PositiveSmallIntegerField(
         'Количество',
         validators=[MinValueValidator(1), ]
     )
 
-    def __str__(self):
-        return (f'{self.product.name} {self.amount}'
-                f'{self.product.measurement_unit}')
-
     class Meta:
         ordering = ['id']
         verbose_name = 'Ингредиент'
         verbose_name_plural = 'Ингредиенты'
+
+    def __str__(self):
+        return (f'{self.product.name} {self.amount}'
+                f'{self.product.measurement_unit}')
 
 
 class Subscription(models.Model):
@@ -128,14 +131,14 @@ class Subscription(models.Model):
         verbose_name='Подписчик'
     )
 
-    def __str__(self):
-        return (f'Подписка - автор: {self.author.email}'
-                f', подписчик: {self.subscriber.email}')
-
     class Meta:
         ordering = ['id']
         verbose_name = 'Подписка'
         verbose_name_plural = 'Подписки'
+
+    def __str__(self):
+        return (f'Подписка - автор: {self.author.email}'
+                f', подписчик: {self.subscriber.email}')
 
 
 class ShoppingCart(models.Model):
@@ -152,10 +155,10 @@ class ShoppingCart(models.Model):
         verbose_name='Рецепты'
     )
 
-    def __str__(self):
-        return f'Корзина {self.customer.username}'
-
     class Meta:
         ordering = ['id']
         verbose_name = 'Корзина'
         verbose_name_plural = 'Корзины'
+
+    def __str__(self):
+        return f'Корзина {self.customer.username}'
