@@ -112,6 +112,10 @@ class Ingredient(models.Model):
         ordering = ['id']
         verbose_name = 'Ингредиент'
         verbose_name_plural = 'Ингредиенты'
+        constraints = [
+            models.UniqueConstraint(fields=['product', 'recipe'],
+                                    name='unique_product_recipe')
+        ]
 
     def __str__(self):
         return (f'{self.product.name} {self.amount}'
@@ -135,6 +139,10 @@ class Subscription(models.Model):
         ordering = ['id']
         verbose_name = 'Подписка'
         verbose_name_plural = 'Подписки'
+        constraints = [
+            models.UniqueConstraint(fields=['author', 'subscriber'],
+                                    name='unique_author_subscriber')
+        ]
 
     def __str__(self):
         return (f'Подписка - автор: {self.author.email}'
@@ -159,6 +167,10 @@ class ShoppingCart(models.Model):
         ordering = ['id']
         verbose_name = 'Корзина'
         verbose_name_plural = 'Корзины'
+        constraints = [
+            models.UniqueConstraint(fields=['customer', ],
+                                    name='unique_customer')
+        ]
 
     def __str__(self):
         return f'Корзина {self.customer.username}'

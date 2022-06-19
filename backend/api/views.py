@@ -109,34 +109,12 @@ class RecipeViewset(viewsets.ModelViewSet):
     permission_classes = [
         local_rights.ReadAnyPostAuthChangeOwner | local_rights.IsAdmin
     ]
+    filter_backends = (dfilters.DjangoFilterBackend, )
+    filter_class = local_filters.RecipeFilter
+    queryset = Recipe.objects.all().order_by('-published')
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
-
-    def get_queryset(self):
-        queryset = Recipe.objects.all()
-        cur_user = self.request.user
-        if (
-            self.request.GET.get('is_favorited') == '1'
-            and cur_user.is_authenticated
-        ):
-            queryset = cur_user.favorites.all()
-        if self.request.GET.getlist('tags'):
-            queryset = queryset.filter(
-                tags__slug__in=self.request.GET.getlist('tags')
-            ).distinct()
-        if self.request.GET.get('author'):
-            queryset = queryset.filter(
-                author__id=self.request.GET.get('author')
-            )
-        if (
-            self.request.GET.get('is_in_shopping_cart') == '1'
-            and cur_user.is_authenticated
-        ):
-            queryset = queryset.filter(
-                shopping_carts=cur_user.shopping_cart
-            )
-        return queryset.order_by('-published')
 
 
 class UserSetPasswordViewset(views.APIView):

@@ -5,12 +5,12 @@ from django.contrib.auth import get_user_model, password_validation
 from django.core import exceptions
 from django.forms import ValidationError
 from drf_extra_fields.fields import Base64ImageField
-from food.models import (
-    Ingredient, Product, Recipe, ShoppingCart, Subscription, Tag,
-)
 from rest_framework import serializers
 
 from . import utils
+from food.models import (
+    Ingredient, Product, Recipe, ShoppingCart, Subscription, Tag,
+)
 
 user = get_user_model()
 
@@ -108,11 +108,9 @@ class IngField(serializers.Field):
                 msg['amount'] = 'Количество должно быть числом больше 0.'
             if msg:
                 raise ValidationError(msg)
-
         return data
 
     def to_representation(self, data):
-        print(data.instance)
         ingredients_data = IngredientSerializer(
             Ingredient.objects.filter(recipe=data.instance), many=True
         ).data
