@@ -157,8 +157,9 @@ class RecipeSerializer(serializers.ModelSerializer):
             new_ingredients = validated_data.pop('ingredients')
         instance.ingredients.clear()
         utils.create_ingredients(instance, new_ingredients)
-        old_image_path = instance.image
-        os.remove(os.path.join(settings.MEDIA_ROOT, str(old_image_path)))
+        if 'image' in validated_data:
+            old_image_path = instance.image
+            os.remove(os.path.join(settings.MEDIA_ROOT, str(old_image_path)))
         return super().update(instance, validated_data)
 
     def to_representation(self, instance):
