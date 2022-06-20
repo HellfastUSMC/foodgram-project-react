@@ -1,3 +1,4 @@
+from itertools import product
 import os
 
 from django.conf import settings
@@ -123,7 +124,8 @@ class RecipeSerializer(serializers.ModelSerializer):
         many=True
     )
     author = UserSerializer(read_only=True)
-    ingredients = IngField()
+    # ingredients = IngField()
+    ingredients = serializers.JSONField()
     is_favorited = serializers.SerializerMethodField(
         '_get_favorited', read_only=True
     )
@@ -148,6 +150,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         tags = validated_data.pop('tags')
         obj = super().create(validated_data)
         obj.tags.set(tags)
+        print(ingredients)
         utils.create_ingredients(obj, ingredients)
         return obj
 
@@ -161,6 +164,23 @@ class RecipeSerializer(serializers.ModelSerializer):
             os.remove(os.path.join(settings.MEDIA_ROOT, str(old_image_path)))
         return super().update(instance, validated_data)
 
+    # def to_internal_value(self, data):
+    #     #print('raw data', data)
+    #     # ingredients = data['ingredients']
+    #     ing_lst = []
+    #     for ingredient in data['ingredients']:
+    #         ing_lst.append({'product_id':ingredient['id'], 'amount':ingredient['amount']})
+    #     data['ingredients'] = ing_lst
+    #     to_internal_value = super().to_internal_value(data)
+    #     # data['ingredients'] = ingredients
+    #     # print(ingredients)
+    #     print(data['ingredients'], to_internal_value['ingredients'])
+    #     return to_internal_value
+
+    def validate_ingredients(self, data):
+        print('val_ings', data)
+        return data
+
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         if 'tags' in self.fields:
@@ -168,9 +188,9 @@ class RecipeSerializer(serializers.ModelSerializer):
                 instance.tags.all(),
                 many=True
             ).data
-        # if 'image' in self.fields:
-        #     print(instance.image.url)
-        #     representation['image'] = str(instance.image.url)
+        if 'image' in self.fields:
+            print(instance.image.url)
+            representation['image'] = str(instance.image.url)
         return representation
 
     def validate_image(self, data):
