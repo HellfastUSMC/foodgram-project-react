@@ -9,7 +9,7 @@ from rest_framework import serializers
 
 from . import utils
 from food.models import (
-    Ingredient, Product, Recipe, ShoppingCart, Subscription, Tag,
+    Ingredient, Product, Recipe, Subscription, Tag,
 )
 
 user = get_user_model()
@@ -47,7 +47,6 @@ class UserSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         cur_user = user.objects.create_user(**validated_data)
         cur_user.save()
-        ShoppingCart.objects.create(customer=cur_user)
         return cur_user
 
     class Meta:
