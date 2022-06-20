@@ -37,14 +37,9 @@ jobs:
         passphrase: ${{ secrets.PASSPHRASE }}
         script: |
           cd dev/foodgram-project-react/infra/
-          sudo docker compose down -v
+          sudo docker compose stop
           sudo docker container rm infra-web-1
-          sudo docker container rm infra-nginx-1
-          sudo docker container rm infra-db-1
           sudo docker image rm hellfast/foodgram
-          sudo docker image rm nginx
-          sudo docker image rm db
-          sudo docker volume prune -f
           rm .env
           touch .env
           echo DB_ENGINE=${{ secrets.DB_ENGINE }} >> .env

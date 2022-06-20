@@ -31,7 +31,6 @@ class Product(models.Model):
     name = models.CharField(
         verbose_name='Название продукта',
         max_length=200,
-        unique=True
     )
     measurement_unit = models.CharField(
         verbose_name='Единицы измерения',
