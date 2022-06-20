@@ -270,7 +270,8 @@ class ExportShoppingCart(viewsets.ViewSet):
         data = request.user.shopping_cart.recipes.all().values(
             'ingredients__name',
             'ingredients__measurement_unit'
-        ).annotate(amount=Sum('ingredients__ingredients__amount'))
+        ).annotate(amount=Sum('ingredient__amount'))
+        print(data)
         text = []
         text.append(f'Список покупок для {request.user.username}:\n')
         for product in data:

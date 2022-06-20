@@ -178,15 +178,6 @@ class RecipeSerializer(serializers.ModelSerializer):
             raise ValidationError('Это поле не может быть пустым.')
         return data
 
-    def validate(self, attrs):
-        if 'ingredients' not in self.initial_data:
-            raise ValidationError({'ingredients': 'Обязательное поле.'})
-        if not self.initial_data['ingredients']:
-            raise ValidationError(
-                {'ingredients': 'Это поле не может быть пустым.'}
-            )
-        return super().validate(attrs)
-
     def _get_shopping_cart(self, obj):
         request = self.context.get('request')
         return obj.shopping_carts.filter(customer_id=request.user.id).exists()

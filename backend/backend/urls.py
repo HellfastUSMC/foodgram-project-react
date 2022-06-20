@@ -1,5 +1,3 @@
-# from django.conf import settings  # temp for dev server
-# from django.conf.urls.static import static  # temp for dev server
 from django.contrib import admin
 from django.urls import include, path
 from django.views.generic import TemplateView
