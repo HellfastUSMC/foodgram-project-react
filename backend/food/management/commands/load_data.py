@@ -12,10 +12,10 @@ class Command(BaseCommand):
         print('Начинаем загрузку данных')
 
         with open('./data/ingredients.csv') as file:
-                reader = csv.reader(file)
-                for row in reader:
-                    print(row[0])
-                    _, created = Product.objects.get_or_create(
-                        name=row[0],
-                        measurement_unit=row[1],
-                        )
+            reader = csv.reader(file)
+            for row in reader:
+                print(row[0])
+                _, created = Product.objects.get_or_create(
+                    name=row[0],
+                    measurement_unit=row[1],
+                )
