@@ -15,5 +15,8 @@ class Command(BaseCommand):
         print('Начинаем загрузку данных')
 
         for row in DictReader(open('./data/ingredients.csv')):
-            product = Product(name=row[0], measurement_unit=row[1])
+            product = Product(
+                name=row['name'],
+                measurement_unit=row['measurement_unit']
+            )
             product.save()

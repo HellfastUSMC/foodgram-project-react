@@ -163,8 +163,6 @@ class RecipeSerializer(serializers.ModelSerializer):
                 instance.tags.all(),
                 many=True
             ).data
-        # if 'image' in self.fields:
-        #     representation['image'] = str(instance.image.url)
         return representation
 
     def validate_image(self, data):
