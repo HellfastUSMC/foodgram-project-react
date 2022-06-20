@@ -11,7 +11,7 @@ from . import (
     filters as local_filters, pagination, permissions as local_rights,
     serializers, utils,
 )
-from food.models import Product, Recipe, ShoppingCart, Subscription, Tag
+from food.models import Product, Recipe, Subscription, Tag
 
 user = get_user_model()
 
@@ -142,37 +142,6 @@ class UserSetPasswordViewset(views.APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class AddToFavoriteView(views.APIView):
-    permission_classes = [permissions.IsAuthenticated | local_rights.IsAdmin]
-
-    def post(self, request, recipe_id):
-        cur_user = self.request.user
-        recipe_obj = get_object_or_404(Recipe, pk=recipe_id)
-        if recipe_obj.favorites.filter(id=cur_user.id).exists():
-            return Response(
-                {'errors': 'Рецепт уже добавлен в избранное'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        recipe_obj.favorites.add(cur_user)
-        recipe_data = serializers.RecipeSerializer(
-            recipe_obj,
-            context={'request': request},
-            fields=['id', 'name', 'image', 'cooking_time']
-        ).data
-        return Response(recipe_data, status=status.HTTP_201_CREATED)
-
-    def delete(self, request, recipe_id):
-        cur_user = self.request.user
-        recipe_obj = get_object_or_404(Recipe, pk=recipe_id)
-        if not recipe_obj.favorites.filter(id=cur_user.id).exists():
-            return Response(
-                {'errors': 'Рецепт отсутствует в избранном'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        recipe_obj.favorites.remove(cur_user)
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-
 class SubscribeListView(mixins.ListModelMixin, viewsets.GenericViewSet):
     permission_classes = [permissions.IsAuthenticated | local_rights.IsAdmin]
     pagination_class = pagination.DefaultPagination
@@ -182,6 +151,71 @@ class SubscribeListView(mixins.ListModelMixin, viewsets.GenericViewSet):
         return user.objects.filter(
             subscriptions__subscriber=self.request.user
         ).order_by('id')
+
+
+class PostDeleteMixin():
+    def post(self, request, recipe_id):
+        cur_user = self.request.user
+        recipe_obj = get_object_or_404(Recipe, pk=recipe_id)
+        if self.view_name == 'shopping_carts':
+            cur_filter = 'shopping_carts'
+            cur_value = cur_user.shopping_cart
+        if self.view_name == 'favorites':
+            cur_filter = 'favorites'
+            cur_value = cur_user
+        if Recipe.objects.filter(
+            **{cur_filter: cur_value},
+            pk=recipe_id
+        ).exists():
+            return Response(
+                {'errors': 'Рецепт уже добавлен.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if self.view_name == 'favorites':
+            recipe_obj.favorites.add(cur_value)
+        if self.view_name == 'shopping_carts':
+            cur_value.recipes.add(recipe_obj)
+
+        recipe_data = serializers.RecipeSerializer(
+            recipe_obj,
+            context={'request': request},
+            fields=['id', 'name', 'image', 'cooking_time']
+        ).data
+        return Response(recipe_data, status=status.HTTP_201_CREATED)
+
+    def delete(self, request, recipe_id):
+        cur_user = request.user
+        recipe_obj = get_object_or_404(Recipe, pk=recipe_id)
+        if self.view_name == 'shopping_carts':
+            cur_value = cur_user.shopping_cart
+        if self.view_name == 'favorites':
+            cur_value = cur_user
+        if not Recipe.objects.filter(
+            **{self.view_name: cur_value},
+            pk=recipe_id
+        ).exists():
+            return Response(
+                {'errors': 'Рецепт отсутствует и не может быть удален.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if self.view_name == 'favorites':
+            recipe_obj.favorites.remove(cur_user)
+        if self.view_name == 'shopping_carts':
+            cur_value.recipes.remove(recipe_obj)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class AddToFavoriteView(views.APIView, PostDeleteMixin):
+    permission_classes = [permissions.IsAuthenticated | local_rights.IsAdmin]
+    view_name = 'favorites'
+
+
+class AddToShoppingCartView(viewsets.ViewSet, PostDeleteMixin):
+    permission_classes = [permissions.IsAuthenticated | local_rights.IsAdmin]
+    view_name = 'shopping_carts'
 
 
 class SubscribeView(viewsets.ViewSet):
@@ -223,46 +257,6 @@ class SubscribeView(viewsets.ViewSet):
         )
 
 
-class AddToShoppingCartView(viewsets.ViewSet):
-    permission_classes = [permissions.IsAuthenticated | local_rights.IsAdmin]
-
-    def post(self, request, recipe_id):
-        recipe = get_object_or_404(Recipe, pk=recipe_id)
-        shopping_cart, stats = ShoppingCart.objects.get_or_create(
-            customer=request.user
-        )
-
-        if shopping_cart.recipes.filter(pk=recipe_id).exists():
-            return Response(
-                {'errors': 'Рецепт уже добавлен'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        shopping_cart.recipes.add(recipe)
-        recipe_data = serializers.RecipeSerializer(
-            recipe,
-            context={'request': request},
-            fields=['id', 'name', 'image', 'cooking_time']
-        ).data
-        return Response(recipe_data, status=status.HTTP_201_CREATED)
-
-    def delete(self, request, recipe_id):
-        cart = get_object_or_404(
-            ShoppingCart,
-            pk=request.user.shopping_cart.id
-        )
-        recipe = get_object_or_404(Recipe, pk=recipe_id)
-
-        if not cart.recipes.filter(pk=recipe_id).exists():
-            return Response(
-                {'errors': 'Рецепт отсутствует в корзине'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        cart.recipes.remove(recipe)
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-
 class ExportShoppingCart(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated | local_rights.IsAdmin]
 
@@ -271,7 +265,6 @@ class ExportShoppingCart(viewsets.ViewSet):
             'ingredients__name',
             'ingredients__measurement_unit'
         ).annotate(amount=Sum('ingredient__amount'))
-        print(data)
         text = []
         text.append(f'Список покупок для {request.user.username}:\n')
         for product in data:

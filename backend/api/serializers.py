@@ -1,4 +1,3 @@
-from itertools import product
 import os
 
 from django.conf import settings
@@ -95,28 +94,6 @@ class IngredientSerializer(serializers.ModelSerializer):
         exclude = ['product', 'recipe']
 
 
-class IngField(serializers.Field):
-
-    def to_internal_value(self, data):
-        for ingredient in data:
-            msg = {}
-            if not Product.objects.filter(pk=ingredient['id']).exists():
-                msg['id'] = (f'Продукт с id {ingredient["id"]}'
-                             f' отсутствует в базе.')
-            if (not isinstance(int(ingredient['amount']), int)
-                    or int(ingredient['amount']) <= 0):
-                msg['amount'] = 'Количество должно быть числом больше 0.'
-            if msg:
-                raise ValidationError(msg)
-        return data
-
-    def to_representation(self, data):
-        ingredients_data = IngredientSerializer(
-            Ingredient.objects.filter(recipe=data.instance), many=True
-        ).data
-        return ingredients_data
-
-
 class RecipeSerializer(serializers.ModelSerializer):
     """Сериализатор рецептов."""
     tags = serializers.PrimaryKeyRelatedField(
@@ -124,7 +101,6 @@ class RecipeSerializer(serializers.ModelSerializer):
         many=True
     )
     author = UserSerializer(read_only=True)
-    # ingredients = IngField()
     ingredients = serializers.JSONField()
     is_favorited = serializers.SerializerMethodField(
         '_get_favorited', read_only=True
@@ -150,7 +126,6 @@ class RecipeSerializer(serializers.ModelSerializer):
         tags = validated_data.pop('tags')
         obj = super().create(validated_data)
         obj.tags.set(tags)
-        print(ingredients)
         utils.create_ingredients(obj, ingredients)
         return obj
 
@@ -164,33 +139,32 @@ class RecipeSerializer(serializers.ModelSerializer):
             os.remove(os.path.join(settings.MEDIA_ROOT, str(old_image_path)))
         return super().update(instance, validated_data)
 
-    # def to_internal_value(self, data):
-    #     #print('raw data', data)
-    #     # ingredients = data['ingredients']
-    #     ing_lst = []
-    #     for ingredient in data['ingredients']:
-    #         ing_lst.append({'product_id':ingredient['id'], 'amount':ingredient['amount']})
-    #     data['ingredients'] = ing_lst
-    #     to_internal_value = super().to_internal_value(data)
-    #     # data['ingredients'] = ingredients
-    #     # print(ingredients)
-    #     print(data['ingredients'], to_internal_value['ingredients'])
-    #     return to_internal_value
-
     def validate_ingredients(self, data):
-        print('val_ings', data)
+        for ingredient in data:
+            msg = {}
+            if not Product.objects.filter(pk=ingredient['id']).exists():
+                msg['id'] = (f'Продукт с id {ingredient["id"]}'
+                             f' отсутствует в базе.')
+            if (not isinstance(int(ingredient['amount']), int)
+                    or int(ingredient['amount']) <= 0):
+                msg['amount'] = 'Количество должно быть числом больше 0.'
+            if msg:
+                raise ValidationError(msg)
         return data
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
+        if 'ingredients' in self.fields:
+            representation['ingredients'] = IngredientSerializer(
+                Ingredient.objects.filter(recipe=instance), many=True
+            ).data
         if 'tags' in self.fields:
             representation['tags'] = TagSerializer(
                 instance.tags.all(),
                 many=True
             ).data
-        if 'image' in self.fields:
-            print(instance.image.url)
-            representation['image'] = str(instance.image.url)
+        # if 'image' in self.fields:
+        #     representation['image'] = str(instance.image.url)
         return representation
 
     def validate_image(self, data):
