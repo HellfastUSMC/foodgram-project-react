@@ -54,8 +54,7 @@ class RecipeAdmin(ModelAdmin):
 
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
-        queryset = queryset.annotate(fav_count=Count('favorites'))
-        return queryset
+        return queryset.annotate(fav_count=Count('favorites'))
 
 
 @register(Subscription)
