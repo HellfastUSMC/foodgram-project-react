@@ -206,13 +206,12 @@ class UserSupscriptionsSerializer(serializers.ModelSerializer):
             queryset = obj.recipes.all().order_by('-published')[:int(limit)]
         else:
             queryset = obj.recipes.all().order_by('-published')
-        data = RecipeSerializer(
+        return RecipeSerializer(
             queryset,
             many=True,
             fields=['id', 'name', 'image', 'cooking_time'],
             context={'request': self.context['request']}
         ).data
-        return data
 
     def count_recipes(self, obj):
         return obj.recipes.count()
