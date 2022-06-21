@@ -5,4 +5,4 @@ from .models import CustomUser
 
 @register(CustomUser)
 class CustomUserAdmin(ModelAdmin):
-    pass
+    search_fields = ('username', 'email')
