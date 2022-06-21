@@ -70,10 +70,8 @@ class UserViewset(
 
     def get_object(self):
         if 'me' in self.request.get_full_path():
-            obj = self.request.user
-        else:
-            obj = get_object_or_404(user, pk=self.kwargs['pk'])
-        return obj
+            return self.request.user
+        return get_object_or_404(user, pk=self.kwargs['pk'])
 
 
 class TagViewset(

@@ -27,6 +27,7 @@ class UserSerializer(serializers.ModelSerializer):
             return Subscription.objects.filter(author=obj).filter(
                 subscriber=request.user
             ).exists()
+        return False
 
     def validate_password(self, data):
         cur_user = user(**self.initial_data)
