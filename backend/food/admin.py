@@ -1,9 +1,8 @@
 from django.contrib.admin import ModelAdmin, register
 from django.db.models import Count
 
-from .models import (
-    Ingredient, Product, Recipe, ShoppingCart, Subscription, Tag,
-)
+from .models import (Ingredient, Product, Recipe, ShoppingCart, Subscription,
+                     Tag)
 
 
 @register(Tag)

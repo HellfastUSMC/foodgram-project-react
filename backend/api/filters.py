@@ -1,5 +1,4 @@
 from django_filters import FilterSet, rest_framework
-
 from food.models import Product, Recipe, Tag
 
 

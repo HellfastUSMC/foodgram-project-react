@@ -3,15 +3,15 @@ from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters import rest_framework as dfilters
+from food.models import Product, Recipe, ShoppingCart, Subscription, Tag
 from rest_framework import mixins, permissions, status, views, viewsets
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 
-from . import (
-    filters as local_filters, pagination, permissions as local_rights,
-    serializers, utils,
-)
-from food.models import Product, Recipe, Subscription, Tag, ShoppingCart
+from . import filters as local_filters
+from . import pagination
+from . import permissions as local_rights
+from . import serializers, utils
 
 user = get_user_model()
 

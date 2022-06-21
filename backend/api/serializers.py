@@ -5,12 +5,10 @@ from django.contrib.auth import get_user_model, password_validation
 from django.core import exceptions
 from django.forms import ValidationError
 from drf_extra_fields.fields import Base64ImageField
+from food.models import Ingredient, Product, Recipe, Subscription, Tag
 from rest_framework import serializers
 
 from . import utils
-from food.models import (
-    Ingredient, Product, Recipe, Subscription, Tag,
-)
 
 user = get_user_model()
 
