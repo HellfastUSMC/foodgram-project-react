@@ -159,7 +159,9 @@ class PostDeleteMixin():
         recipe_obj = get_object_or_404(Recipe, pk=recipe_id)
         if self.view_name == 'shopping_carts':
             cur_filter = 'shopping_carts'
-            cur_value = ShoppingCart.objects.get_or_create(customer=cur_user)
+            cur_value, _ = ShoppingCart.objects.get_or_create(
+                customer=cur_user
+            )
         if self.view_name == 'favorites':
             cur_filter = 'favorites'
             cur_value = cur_user
