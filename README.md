@@ -1,10 +1,10 @@
 # Foodgram
 Это кулинарная соцсеть, позволяет пользователям создавать и обмениваться рецептами, добавлять в избранное и корзину, подписываться на понравившихся авторов, а также выгружать список покупок для рецептов в корзине.
 
-## Stack
+## Технологии
 ![Ubuntu](https://img.shields.io/badge/Ubuntu-E95420?style=for-the-badge&logo=ubuntu&logoColor=white)![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)![Django](https://img.shields.io/badge/Django-092E20?style=for-the-badge&logo=django&logoColor=white)![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)![CSS](https://img.shields.io/badge/CSS-239120?&style=for-the-badge&logo=css3&logoColor=white)
 
-## Workflow Status
+## Workflow статус
 ![foodgram workflow](https://github.com/HellfastUSMC/foodgram-project-react/actions/workflows/main.yml/badge.svg)
 
 ## Подготовка и запуск проекта
@@ -91,11 +91,10 @@
     ```
     - Проект станет доступен по IP или домену
 
-## Link To Example
+## Ссылка на пример работы
 [foodgram.servebeer.com](http://foodgram.servebeer.com/)
 [130.193.52.234](http://130.193.52.234/)
 
-## Contact Me
+## Автор
+Александр Набиев, когорта 26, факультет backend-разработки Yandex Practicum.
 [![https://t.me/HellfastUSMC](https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/HellfastUSMC)
-
-[[https://cdn-icons-png.flaticon.com/512/3075/3075977.png | width=100px]]
