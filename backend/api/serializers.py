@@ -139,8 +139,12 @@ class RecipeSerializer(serializers.ModelSerializer):
         return super().update(instance, validated_data)
 
     def validate_ingredients(self, data):
+        ids = []
         for ingredient in data:
             msg = {}
+            if ingredient['id'] in ids:
+                msg['id'] = (f'Ингредиент с id {ingredient["id"]}'
+                             f' добавлен более 1 раза.')
             if not Product.objects.filter(pk=ingredient['id']).exists():
                 msg['id'] = (f'Продукт с id {ingredient["id"]}'
                              f' отсутствует в базе.')
@@ -149,6 +153,7 @@ class RecipeSerializer(serializers.ModelSerializer):
                 msg['amount'] = 'Количество должно быть числом больше 0.'
             if msg:
                 raise ValidationError(msg)
+            ids.append(ingredient['id'])
         return data
 
     def to_representation(self, instance):
